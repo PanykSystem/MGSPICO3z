@@ -1,0 +1,573 @@
+﻿;code:utf-8(bom)
+;@title Sound driver contoller 
+;@auther Harumakkin
+
+HARZIO:
+	.LED6		equ	0x00	;; bit0-5 = TangNano9K On board LED, biton -> turn-on
+	.CNT100US	equ	0x01	;; counter, update per 100us. stops at 255, resets to 0 on write.
+	.WKRAM_WR	equ	0x02	;; write to work-RAM for Pico
+	.WKRAM_ED	equ	0x03	;; Declare the end of work-RAM rewriting.
+	.CCMD_RD	equ	0x04	;; Command code from Pico. Can only be read once.
+
+CCMD:
+	.NOP		equ	0x00	;; don't care.
+	.PLAY		equ	0x01	;;
+	.STOP		equ	0x02	;;
+	.FADEOUT	equ	0x03	;;
+
+; MGSDRV's sub-routines
+MGS:
+	.SYSCK		equ	0x6010	;; 音源の有無を調べ初期化する
+	.INITM 		equ	0x6013	;; 演奏を止めてドライバを初期化する
+	.PLYST 		equ	0x6016	;; 演奏を開始する
+	.INTER		equ	0x601f	;; 割込ルーチンの先頭アドレス
+	.MSVST 		equ	0x6022	;; マスタボリウムのセット(A=0が最大)
+	.DATCK		equ	0x6028	;; 演奏データのヘッダを調べる
+; Kinrou5(MUSICA)'s sub-routines
+KINR5:
+	.FMSLT		equ	0x6010	;; FM音源のスロット番号。無い場合は０
+	.SCCSLT		equ	0x6011	;; SCC音源のスロット番号。無い場合は０
+	.INITAL		equ	0x6020	;; 音源の有無を調べ初期化する
+	.MPLAY2		equ	0x6026	;; 演奏を開始する
+	.MINTER		equ	0x6029	;; 割込ルーチンの先頭アドレス
+	.MSTOP 		equ	0x602C	;; 演奏を止める
+	.PLYCHK		equ	0x6032	;; 演奏状態を得る
+	.ALLMVO		equ	0x6038	;; マスタボリウムのセット(A=0が最大)
+	.GETWORK	equ 0x6044	;; ワークエリアのアドレスを返す
+
+
+;----------------------------------------------------------------------------
+org 0x4000
+SNDCTRL:
+		ld		A, (WORKIF.driver_select)
+		or		A
+		jp		z, MGS_PLAYER
+		jp		KINROU5_PLAYER
+
+;----------------------------------------------------------------------------
+org 0x4020
+WORKIF:
+	.driver_select
+		db		0			; 0=MGSDRV, 1=KINROU5
+
+;----------------------------------------------------------------------------
+org 0x4100
+; 16.6ms経過するまで待つ
+WAITVSYNC:
+	.begin
+		ld		C, HARZIO.CNT100US
+		ld		B, 166		; 16.6[ms]
+	.@1
+		in		A, (C)
+		cp		B
+		jr		c, .@1		; if A < B goto @1
+		;
+		out		(C), A		; reset counter
+		ret
+
+; TangNano9K実装LED[0]をブリンクさせる
+LIFELED:
+	.begin
+		ld		A, (.actcnt)
+		inc		A
+		ld		(.actcnt), A
+		rlc		A
+		rlc		A
+		rlc		A
+		and		0x01
+		out		(0x00), A	; LED
+		ret
+	
+	.vsynccnt_old
+		db		0
+	.actcnt
+		db		0
+
+; TangNano9K実装LED[5:0]を点灯状態にする
+LEDFULL:
+	.begin
+		ld		A, 0b111111
+		out		(0x00), A	; LED
+		ret
+LED5N:
+	.begin
+		ld		A, 0b011111
+		out		(0x00), A	; LED
+		ret
+LED2N:
+	.begin
+		ld		A, 0b000011
+		out		(0x00), A	; LED
+		ret
+
+;----------------------------------------------------------------------------
+; 再生時間
+PLAYTIME_RESET:
+	.begin
+		ld		HL, PLAYTIME.playtyme
+		xor		A
+		ld		(HL),A
+		inc		HL
+		ld		(HL),A
+		inc		HL
+		ld		(HL),A
+		inc		HL
+		ld		(HL),A
+	.finish
+		ret
+
+PLAYTIME_INC:
+	.begin
+		ld		HL, PLAYTIME.playtyme
+		inc		(HL)
+		jr		nz, .finish
+		inc		HL
+		inc		(HL)
+		jr		nz, .finish
+		inc		HL
+		inc		(HL)
+		jr		nz, .finish
+		inc		HL
+		inc		(HL)
+	.finish
+		ret
+PLAYTIME:
+	.playtyme	DS	4,0x00		; 4 bytes uint(little-endian)
+
+;----------------------------------------------------------------------------
+; CCMDカウンタ
+CCMDCNT_RESET:
+	.begin
+		xor		A
+		ld		(CCMDCNT), A
+		ret
+CCMDCNT_INC:
+	.begin
+		ld		A, (CCMDCNT)
+		inc		A
+		jr		nz, .@1
+		inc		A
+	.@1
+		ld		(CCMDCNT), A
+		ret
+CCMDCNT:
+		db		0x00
+
+;----------------------------------------------------------------------------
+; MGS
+;----------------------------------------------------------------------------
+MGS_PLAYER:
+	.begin
+		call	LED2N
+		call	CCMDCNT_RESET
+		call	MGS_INITSYS
+
+	.mainloop
+		call	LIFELED
+		call	MGS_ACTCMD
+		call	MGS_ROUTINE
+		call	MGS_FADEOUT
+		call	MGS_UPDATE_PLAYTIME
+		call	MGS_MAKEINFO
+		call	WAITVSYNC
+		jr		.mainloop
+
+MGS_INITSYS:
+	.bein
+		call	MGS.SYSCK
+		ld		(MGS_SYSINFO.scc_slt), A
+		ld		A, D
+		ld		(MGS_SYSINFO.fm_slt), A
+		ld		(MGS_SYSINFO.ptr_mib), IX
+		ld		(MGS_SYSINFO.ptr_tracks), IY
+		ld		(MGS_SYSINFO.size_track), BC
+		xor		A
+		ld		(MGS_SYSINFO.updatecnt), A
+		call	MGS.INITM
+		ret
+
+MGS_ACTCMD:
+	.begin
+		in		A, (HARZIO.CCMD_RD)
+		or		A
+	;case CCMD.NONE
+		ret		z
+	;case CCMD.PLAY
+	.play	
+		dec		A
+		jr		nz, .stop
+		ld		HL, 0x8000
+		call	MGS.DATCK		; MGSデータをチェックして内容が正しくない場合はLEDを点灯して停止する
+		jr		z, .@1
+		call	LED5N
+		halt					; 停止
+	.@1
+		call	MGS_VOLUME_MAX
+		ld		DE, 0x8000		; 演奏データのアドレス
+		ld		B, 0xff
+		ld		HL, 0xffff
+		call	MGS.PLYST
+		call	PLAYTIME_RESET	; 再生タイム値をリセット
+		ld		A, 0x01
+		ld		(MGS_SYSINFO.playsts), A
+		call	CCMDCNT_INC
+		ret
+	;case CCMD.STOP
+	.stop
+		dec		A
+		jr		nz, .fadeout
+		call	MGS_VOLUME_MIN
+		call	MGS.INITM
+		call	PLAYTIME_RESET	; 再生タイム値をリセット
+		xor		A
+		ld		(MGS_SYSINFO.playsts), A
+		call	CCMDCNT_INC
+		ret
+	;case CCMD.FADEOUT
+	.fadeout
+		dec		A
+		ret		nz
+		ld		A, (MGS_SYSINFO.playsts)
+		cp		0x01
+		ret		nz
+		ld		A, 0x02						; Start fadeout.
+		ld		(MGS_SYSINFO.playsts), A
+		xor		A
+		ld		(MGS_WORK.fo_volume), A
+		ld		(MGS_WORK.fo_step), A
+		call	CCMDCNT_INC
+		ret
+
+MGS_ROUTINE:
+	.begin
+		ld		A, (MGS_SYSINFO.playsts)
+		or		A
+		call	nz, MGS.INTER
+		ret
+
+MGS_UPDATE_PLAYTIME:
+	.begin
+		ld		A, (MGS_SYSINFO.playsts)
+		or		A
+		ret		z
+		call	PLAYTIME_INC
+		ret
+
+MGS_FADEOUT:
+	.begin
+		ld		A, (MGS_SYSINFO.playsts)
+		cp		0x02
+		ret		nz
+		ld		A, (MGS_WORK.fo_step)
+		inc		A
+		ld		(MGS_WORK.fo_step), A
+		cp		17				; 1/60 * 17 = 0.27sec, 0.27*15 = 4secフェード
+		ret		nz
+		xor		A
+		ld		(MGS_WORK.fo_step), A
+		ld		A, (MGS_WORK.fo_volume)
+		inc		A
+		call	MGS_SET_VOLUME
+		;
+		ld		A, (MGS_WORK.fo_volume)
+		cp		15
+		jr		nz, .finish
+		call	MGS.INITM
+		;call	PLAYTIME_RESET	; リセットしないこととした
+		xor		A
+		ld		(MGS_SYSINFO.playsts), A
+	.finish
+		ret
+
+MGS_VOLUME_MIN:
+	.begin
+		ld		A, 15	; 最小音量
+		jr		MGS_SET_VOLUME
+
+MGS_VOLUME_MAX:
+	.begin
+		ld		A, 0	; 最大音量
+		jr		MGS_SET_VOLUME
+
+MGS_SET_VOLUME:
+	.begin
+		ld		(MGS_WORK.fo_volume), A
+		ld		B, 0
+		call	MGS.MSVST
+		ret
+
+MGS_SYSINFO:
+	.ptr_mib	DW	0x0000
+	.ptr_tracks	DW	0x0000
+	.size_track	DW	0x0000
+	.fm_slt		DB	0x00
+	.scc_slt	DB	0x00
+	.updatecnt	DB	0x00
+	.playsts	DB	0x00		; 0x00=stop, 0x01=play, 0x02=fadeout
+MGS_WORK:
+	.fo_volume	DB	0x00
+	.fo_step	DB	0x00
+
+MGS_MAKEINFO:
+	.begin
+		ld		C, HARZIO.WKRAM_WR
+		;
+		; update_counter
+		ld		A, (MGS_SYSINFO.updatecnt)
+		out		(C), A
+		inc		A
+		ld		(MGS_SYSINFO.updatecnt), A
+		; ccmd_cnt
+		ld		A, (CCMDCNT)
+		out		(C), A
+		; loop_time
+		in		A, (HARZIO.CNT100US)
+		out		(C), A
+		; play tyme
+		ld		IX, PLAYTIME.playtyme
+		ld		A, (IX+0)	
+		out		(C), A
+		ld		A, (IX+1)	
+		out		(C), A
+		ld		A, (IX+2)	
+		out		(C), A
+		ld		A, (IX+3)	
+		out		(C), A
+		; type
+		xor		A								; 0=MGS
+		out		(C), A
+		;
+		ld		IX, (MGS_SYSINFO.ptr_mib)
+		ld		A, (IX+0)						; FM_SLT
+		out		(C), A
+		ld		A, (IX+1)						; SCC_SLT
+		out		(C), A
+		ld		A, (IX+2)						; MAXCHN
+		out		(C), A
+		ld		A, (IX+5)						; LOOPCT
+		out		(C), A
+		ld		A, (IX+8)						; PLAYFG
+		out		(C), A
+		;
+		ld		DE, (MGS_SYSINFO.size_track )
+		ld		B, 17
+		ld		IX, (MGS_SYSINFO.ptr_tracks)
+	.@1
+		push	IX
+		pop		HL
+		inc		HL
+		ld		A, (HL)
+		out		(C), A
+		inc		HL
+		ld		A, (HL)
+		out		(C), A
+		add		IX, DE
+		djnz	.@1
+		;
+		out		(HARZIO.WKRAM_ED), A			; finish(don't care the value of A).
+		ret
+
+;----------------------------------------------------------------------------
+; KINROU5(MuSICA)
+;----------------------------------------------------------------------------
+KINROU5_PLAYER:
+	.begin
+		call	LED2N
+		call	CCMDCNT_RESET
+		call	KINR5_INITSYS
+	.mainloop
+		call	LIFELED
+		call	KINR5_ACTCMD
+		call	KINR5_ROUTINE
+		call	KINR5_FADEOUT
+		call	KINR5_UPDATE_PLAYTIME
+		call	KINR5_MAKEINFO
+		call	WAITVSYNC
+		jr		.mainloop
+
+KINR5_INITSYS:
+	.bein
+		call	KINR5.INITAL
+		call	KINR5.GETWORK
+		ld		(KINR5_SYSINFO.ptr_tracks), IX
+		ld		(KINR5_SYSINFO.size_track), HL
+		xor		A
+		ld		(MGS_SYSINFO.updatecnt), A
+		call	MGS.INITM
+		ret
+
+KINR5_ACTCMD:
+	.begin
+		in		A, (HARZIO.CCMD_RD)
+		or		A
+	;case CCMD.NONE
+		ret		z
+	;case CCMD.PLAY
+	.play	
+		dec		A
+		jr		nz, .stop
+		call	KINR5_VOLUME_MAX
+		ld		IX, 0x8000
+		ld		E, (IX+1)		; 開始アドレス
+		ld		D, (IX+2)
+		ld		HL, 0x8007		; 格納場所
+		ld		A, 0x00			; 0=無限ループ
+		call	KINR5.MPLAY2
+		call	PLAYTIME_RESET	; 再生タイム値をリセット
+		ld		A, 0x01
+		ld		(KINR5_SYSINFO.playsts), A
+		call	CCMDCNT_INC
+		ret
+	;case CCMD.STOP
+	.stop
+		dec		A
+		jr		nz, .fadeout
+		call	KINR5_VOLUME_MIN
+		call	KINR5.MSTOP
+		call	PLAYTIME_RESET	; 再生タイム値をリセット
+		xor		A
+		ld		(KINR5_SYSINFO.playsts), A
+		call	CCMDCNT_INC
+		ret
+	;case CCMD.FADEOUT
+	.fadeout
+		dec		A
+		ret		nz
+		ld		A, (KINR5_SYSINFO.playsts)
+		cp		0x01
+		ret		nz
+		ld		A, 0x02						; Start fadeout.
+		ld		(KINR5_SYSINFO.playsts), A
+		xor		A
+		ld		(KINR5_WORK.fo_volume), A
+		ld		(KINR5_WORK.fo_step), A
+		call	CCMDCNT_INC
+		ret
+
+KINR5_ROUTINE:
+	.begin
+		ld		A, (KINR5_SYSINFO.playsts)
+		or		A
+		call	nz, KINR5.MINTER
+		ret
+
+KINR5_UPDATE_PLAYTIME:
+	.begin
+		ld		A, (KINR5_SYSINFO.playsts)
+		or		A
+		ret		z
+		call	PLAYTIME_INC
+		ret
+
+KINR5_FADEOUT:
+	.begin
+		ld		A, (KINR5_SYSINFO.playsts)
+		cp		0x02
+		ret		nz
+		ld		A, (KINR5_WORK.fo_step)
+		inc		A
+		ld		(KINR5_WORK.fo_step), A
+		cp		17				; 1/60 * 17 = 0.27sec, 0.27*15 = 4secフェード
+		ret		nz
+		xor		A
+		ld		(KINR5_WORK.fo_step), A
+		ld		A, (KINR5_WORK.fo_volume)
+		inc		A
+		call	KINR5_SET_VOLUME
+		;
+		ld		A, (KINR5_WORK.fo_volume)
+		cp		15
+		jr		nz, .finish
+		call	KINR5.MSTOP
+		;call	PLAYTIME_RESET	; リセットしないこととした
+		xor		A
+		ld		(KINR5_SYSINFO.playsts), A
+	.finish
+		ret
+
+KINR5_VOLUME_MIN:
+	.begin
+		ld		A, 15	; 最小音量
+		jr		KINR5_SET_VOLUME
+
+KINR5_VOLUME_MAX:
+	.begin
+		ld		A, 0	; 最大音量
+		jr		KINR5_SET_VOLUME
+
+KINR5_SET_VOLUME:
+	.begin
+		ld		(KINR5_WORK.fo_volume), A
+		ld		B, 0
+		call	KINR5.ALLMVO
+		ret
+
+KINR5_SYSINFO:
+	.ptr_tracks	DW	0x0000
+	.size_track	DW	0x0000
+	.updatecnt	DB	0x00
+	.playsts	DB	0x00		; 0x00=stop, 0x01=play, 0x02=fadeout
+KINR5_WORK:
+	.fo_volume	DB	0x00
+	.fo_step	DB	0x00
+
+KINR5_MAKEINFO:
+	.begin
+		ld		C, HARZIO.WKRAM_WR
+		;
+		; update_counter
+		ld		A, (KINR5_SYSINFO.updatecnt)
+		out		(C), A
+		inc		A
+		ld		(KINR5_SYSINFO.updatecnt), A
+		; ccmd_cnt
+		ld		A, (CCMDCNT)
+		out		(C), A
+		; loop_time
+		in		A, (HARZIO.CNT100US)
+		out		(C), A
+		; play tyme
+		ld		IX, PLAYTIME.playtyme
+		ld		A, (IX+0)	
+		out		(C), A
+		ld		A, (IX+1)	
+		out		(C), A
+		ld		A, (IX+2)	
+		out		(C), A
+		ld		A, (IX+3)	
+		out		(C), A
+		; type
+		ld		A, 0x01							; 1 = KINROU5 (MuSICA)
+		out		(C), A
+		;
+		ld		IX, (KINR5.FMSLT)
+		ld		A, (IX+0)						; FM_SLT
+		out		(C), A
+		ld		A, (IX+1)						; SCC_SLT
+		out		(C), A
+		ld		A, 17							; MAXCHN  17固定?
+		out		(C), A
+		call	KINR5.PLYCHK
+		ld		B, A
+		ld		A, L
+		dec		A
+		out		(C), A							; LOOPCT
+		ld		A, B							; PLAYFG
+		out		(C), A
+		;
+		ld		DE, (KINR5_SYSINFO.size_track )
+		ld		B, 17
+		ld		IX, (KINR5_SYSINFO.ptr_tracks)
+	.@1
+		push	IX
+		ld		A, (IX+0x0d)
+;		and		0x80
+		out		(C), A
+		xor		A
+		out		(C), A
+		pop		IX
+		add		IX, DE
+		djnz	.@1
+		;
+		out		(HARZIO.WKRAM_ED), A			; finish(don't care the value of A).
+		ret

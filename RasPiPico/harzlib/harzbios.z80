@@ -1,0 +1,383 @@
+﻿;code:utf-8(bom)
+;@title HarzBIOS
+;@auther Harumakkin
+
+include "msxbios.inc"
+
+;-----------------------------------------------------------------------------
+org DOS.SYSTEMCALL
+	jp	FUNC_DOS_SYSTEMCALL
+
+;-----------------------------------------------------------------------------
+; entry area of BIOS
+;-----------------------------------------------------------------------------
+org BIOS.CHKRAM
+	jp	SETUP_SYSTEM
+org BIOS.SYNCHR
+	jp	UNDER_CONSTRUCTION		; 非実装
+org BIOS.RDSLT
+	jp	FUNC_RDSLT
+org BIOS.CHRGTR
+	jp	UNDER_CONSTRUCTION		; 非実装
+org BIOS.WRSLT
+	jp	FUNC_WRSLT
+org BIOS.OUTDO
+	jp	UNDER_CONSTRUCTION		; 非実装
+org BIOS.CALSLT
+	jp	FUNC_CALSLT
+org BIOS.DCOMPR
+	jp	UNDER_CONSTRUCTION		; 非実装
+org BIOS.ENASLT
+	jp	FUNC_ENASLT
+org BIOS.GETYPR
+	jp	UNDER_CONSTRUCTION		; 非実装
+org BIOS.CALLF
+	jp	FUNC_CALLF
+org BIOS.KEYINT
+	jp	FUNC_KEYINT
+org BIOS.INITIO
+	jp	UNDER_CONSTRUCTION		; 非実装
+org BIOS.INIFNK
+	jp	UNDER_CONSTRUCTION		; 非実装
+org BIOS.DISSCR
+	jp	UNDER_CONSTRUCTION		; 非実装
+org BIOS.ENASCR
+	jp	UNDER_CONSTRUCTION		; 非実装
+org BIOS.WRTVDP
+	jp	UNDER_CONSTRUCTION		; 非実装
+org BIOS.RDVRM
+	jp	UNDER_CONSTRUCTION		; 非実装
+org BIOS.WRTVRM
+	jp	UNDER_CONSTRUCTION		; 非実装
+org BIOS.SETRD
+	jp	UNDER_CONSTRUCTION		; 非実装
+org BIOS.SETWRT
+	jp	UNDER_CONSTRUCTION		; 非実装
+org BIOS.FILVRM
+	jp	UNDER_CONSTRUCTION		; 非実装
+org BIOS.LDIRMV
+	jp	UNDER_CONSTRUCTION		; 非実装
+org BIOS.LDIRVM
+	jp	UNDER_CONSTRUCTION		; 非実装
+org BIOS.CHGMOD
+	jp	UNDER_CONSTRUCTION		; 非実装
+org BIOS.CHGCLR
+	jp	UNDER_CONSTRUCTION		; 非実装
+org BIOS.NMI
+	jp	UNDER_CONSTRUCTION		; 非実装
+org BIOS.CLRSPR
+	jp	UNDER_CONSTRUCTION		; 非実装
+org BIOS.INITXT
+	jp	UNDER_CONSTRUCTION		; 非実装
+org BIOS.INIT32
+	jp	UNDER_CONSTRUCTION		; 非実装
+org BIOS.INIGRP
+	jp	UNDER_CONSTRUCTION		; 非実装
+org BIOS.INIMLT
+	jp	UNDER_CONSTRUCTION		; 非実装
+org BIOS.SETTXT
+	jp	UNDER_CONSTRUCTION		; 非実装
+org BIOS.SETT32
+	jp	UNDER_CONSTRUCTION		; 非実装
+org BIOS.SETGRP
+	jp	UNDER_CONSTRUCTION		; 非実装
+org BIOS.SETMLT
+	jp	UNDER_CONSTRUCTION		; 非実装
+org BIOS.CALPAT
+	jp	UNDER_CONSTRUCTION		; 非実装
+org BIOS.CALATR
+	jp	UNDER_CONSTRUCTION		; 非実装
+org BIOS.GSPSIZ
+	jp	UNDER_CONSTRUCTION		; 非実装
+org BIOS.GRPPRT
+	jp	UNDER_CONSTRUCTION		; 非実装
+org BIOS.GICINI
+	jp	UNDER_CONSTRUCTION		; 非実装
+org BIOS.WRTPSG
+	jp	UNDER_CONSTRUCTION		; 非実装
+org BIOS.RDPSG
+	jp	UNDER_CONSTRUCTION		; 非実装
+org BIOS.STRTMS
+	jp	UNDER_CONSTRUCTION		; 非実装
+org BIOS.CHSNS
+	jp	UNDER_CONSTRUCTION		; 非実装
+org BIOS.CHGET
+	jp	UNDER_CONSTRUCTION		; 非実装
+org BIOS.CHPUT
+	jp	UNDER_CONSTRUCTION		; 非実装
+org BIOS.LPTOUT
+	jp	UNDER_CONSTRUCTION		; 非実装
+org BIOS.LPTSTT
+	jp	UNDER_CONSTRUCTION		; 非実装
+org BIOS.CNVCHR
+	jp	UNDER_CONSTRUCTION		; 非実装
+org BIOS.PINLIN
+	jp	UNDER_CONSTRUCTION		; 非実装
+org BIOS.INLIN
+	jp	UNDER_CONSTRUCTION		; 非実装
+org BIOS.QINLIN
+	jp	UNDER_CONSTRUCTION		; 非実装
+org BIOS.BREAKX
+	jp	UNDER_CONSTRUCTION		; 非実装
+org BIOS.BEEP
+	jp	UNDER_CONSTRUCTION		; 非実装
+org BIOS.CLS
+	jp	UNDER_CONSTRUCTION		; 非実装
+org BIOS.POSIT
+	jp	UNDER_CONSTRUCTION		; 非実装
+org BIOS.FNKSB
+	jp	UNDER_CONSTRUCTION		; 非実装
+org BIOS.ERAFNK
+	jp	UNDER_CONSTRUCTION		; 非実装
+org BIOS.DSPFNK
+	jp	UNDER_CONSTRUCTION		; 非実装
+org BIOS.TOTEXT
+	jp	UNDER_CONSTRUCTION		; 非実装
+org BIOS.GTSTCK
+	jp	UNDER_CONSTRUCTION		; 非実装
+org BIOS.GTTRIG
+	jp	UNDER_CONSTRUCTION		; 非実装
+org BIOS.GTPAD
+	jp	UNDER_CONSTRUCTION		; 非実装
+org BIOS.GTPDL
+	jp	UNDER_CONSTRUCTION		; 非実装
+org BIOS.TAPION
+	jp	UNDER_CONSTRUCTION		; 非実装
+org BIOS.TAPIN
+	jp	UNDER_CONSTRUCTION		; 非実装
+org BIOS.TAPIOF
+	jp	UNDER_CONSTRUCTION		; 非実装
+org BIOS.TAPOON
+	jp	UNDER_CONSTRUCTION		; 非実装
+org BIOS.TAPOUT
+	jp	UNDER_CONSTRUCTION		; 非実装
+org BIOS.TAPOOF
+	jp	UNDER_CONSTRUCTION		; 非実装
+org BIOS.STMOTR
+	jp	UNDER_CONSTRUCTION		; 非実装
+org BIOS.CHGCAP
+	jp	UNDER_CONSTRUCTION		; 非実装
+org BIOS.CHGSND
+	jp	UNDER_CONSTRUCTION		; 非実装
+org BIOS.RSLREG
+	jp	UNDER_CONSTRUCTION		; 非実装
+org BIOS.WSLREG
+	jp	UNDER_CONSTRUCTION		; 非実装
+org BIOS.RDVDP
+	jp	UNDER_CONSTRUCTION		; 非実装
+org BIOS.SNSMAT
+	jp	UNDER_CONSTRUCTION		; 非実装
+org BIOS.ISFLIO
+	jp	UNDER_CONSTRUCTION		; 非実装
+org BIOS.OUTDLP
+	jp	UNDER_CONSTRUCTION		; 非実装
+org BIOS.KILBUF
+	jp	UNDER_CONSTRUCTION		; 非実装
+org BIOS.CALBAS
+	jp	UNDER_CONSTRUCTION		; 非実装
+
+; -----------------------------------------------------------------------------
+org	0x0200
+FUNC_DOS_SYSTEMCALL:
+	.begin
+		xor		A
+		ld		B, A
+		ret
+
+SETUP_SYSTEM:
+	.begin
+		di
+		im		0
+		ld		H, 0xE0
+		ld		L, 0x00
+		ld		SP, HL
+		;
+		ld		A, 0b111111		; LED全点灯
+		out		(0x00), A
+		;
+		jp		0x4000			; 
+
+UNDER_CONSTRUCTION:
+	.begin
+		ld		A, 0b100001
+		out		(0x00), A		; 未実装BIOSがコールされた
+		halt
+		;ret
+
+; -----------------------------------------------------------------------------
+; 指定したスロット＆アドレスの値を読み出す。
+;		ただし、ページ0範囲内だった場合は、A=0を返す
+FUNC_RDSLT:
+	.begin
+		di
+		; スロット0の002dh番地(ページ0)の値を読みだそうとしていたら、0x02(MSX2+)を返す
+		;	スロット0で002dh以外の番地を読みだそうとしていたら、0x00を返す
+		or		A
+		jr		nz, .truebegin
+		cp 		H			;if H == 0 
+		jr		nz, .@0
+		ld		A, 0x2d
+		cp		L
+		jr		nz, .@0
+		ld		A, 0x02	; MSX2+
+		ret
+	.@0
+		xor		A
+		ret
+
+	.truebegin
+		and		0x03
+		ld		C, A			; C[1:0] = 切り替え先のスロット番号
+		ld		A, H
+		rlc		A
+		rlc		A
+		and		0x03
+
+		; 0ページ目の切り替えは、拒否して A=0 にして処理を返す
+		or		A
+		ret		z
+
+		ld		B, A			; D[1:0] = B[1:0] = 対象ページ番号 0-3
+		ld		D, B
+		or		A
+		in		A, (IO.SLOTPG)	; A = 現在の切り替え状態
+		ld		E, A			; E = 切り替え前のスロット状態を退避
+		jr		z, .@2
+	.@1
+		rrc		A
+		rrc		A
+		djnz	.@1
+	.@2
+		and		0xfc
+		or		C
+		ld		C, A
+		ld		A, D			; D = 対象ページ番号 0-3
+		or		A
+		ld		A, C
+		jr		z, .@4
+		ld		B, D
+	.@3
+		rlc		A
+		rlc		A
+		djnz	.@3
+	.@4
+		out		(IO.SLOTPG), A
+		ld		B, (HL)
+		ld		A, E
+		out		(IO.SLOTPG), A
+		ld		A, B			; A = 対象スロットの(HL)の値
+	.end
+		ret
+; -----------------------------------------------------------------------------
+; 指定したスロット＆アドレスの値を読み出す。
+;		ただし、ページ0範囲内だった場合は、何もせずに返す
+FUNC_WRSLT:
+	.begin
+		ret
+
+		di
+		and		0x03
+		ld		C, A			; C[1:0] = 切り替え先のスロット番号
+		ld		A, H
+		rlc		A
+		rlc		A
+		and		0x03
+
+		; 0ページ目の切り替えは拒否する
+		or		A
+		ret		z
+
+		ld		B, A			; D[1:0] = B[1:0] = 対象ページ番号 0-3
+		ld		D, B
+		or		A
+		in		A, (IO.SLOTPG)
+		push	AF				; 切り替え前のスロット状態を退避
+		jr		z, .@2
+	.@1
+		rrc		A
+		rrc		A
+		djnz	.@1
+	.@2
+		and		0xfc
+		or		C
+		ld		C, A
+		ld		A, D			; D = 対象ページ番号 0-3
+		or		A
+		ld		A, C
+		jr		z, .@4
+		ld		B, D
+	.@3
+		rlc		A
+		rlc		A
+		djnz	.@3
+	.@4
+		out		(IO.SLOTPG), A
+		ld		(HL), E
+		pop		AF
+		out		(IO.SLOTPG), A
+	.end
+		ret
+
+; -----------------------------------------------------------------------------
+FUNC_ENASLT:
+	.begin
+		di
+		and		0x03
+		ld		C, A			; C[1:0] = 切り替え先のスロット番号
+		ld		A, H
+		rlc		A
+		rlc		A
+		and		0x03
+
+		; 0ページ目の切り替えは拒否する
+		or		A
+		ret		z
+
+		ld		B, A			; D[1:0] = B[1:0] = 対象ページ番号 0-3
+		ld		D, B
+		or		A
+		in		A, (IO.SLOTPG)
+		jr		z, .@2
+	.@1
+		rrc		A
+		rrc		A
+		djnz	.@1
+	.@2
+		and		0xfc
+		or		C
+		ld		E, A
+		ld		A, D			; D = 対象ページ番号 0-3
+		or		A
+		ld		A, E
+		jr		z, .@4
+		ld		B, D
+	.@3
+		rlc		A
+		rlc		A
+		djnz	.@3
+	.@4
+		out		(IO.SLOTPG), A
+		ld		H, 0xF3
+		ld		A, D
+		add		A, 0x41
+		ld		L, A
+		ld		A, C
+		ld		(HL), A
+		ret
+; -----------------------------------------------------------------------------
+FUNC_CALSLT:
+	.begin
+		; do nothing
+		ret
+; -----------------------------------------------------------------------------
+FUNC_CALLF:
+	.begin
+		; do nothing
+		ret
+; -----------------------------------------------------------------------------
+FUNC_KEYINT:
+	.begin
+		; do nothing
+		ret
+
+	

@@ -1,0 +1,13 @@
+{
+	"folders": [
+		{
+			"path": "src"
+		}
+	],
+	"settings": {
+		"files.associations": {
+			"*.v": "systemverilog",
+			"FMMSX.C": "cpp"
+		}
+	}
+}

@@ -1,0 +1,52 @@
+<?xml version="1" encoding="UTF-8"?>
+<!DOCTYPE gowin-fpga-project>
+<Project>
+    <Template>FPGA</Template>
+    <Version>5</Version>
+    <Device name="GW1NR-9C" pn="GW1NR-LV9QN88PC6/I5">gw1nr9c-004</Device>
+    <FileList>
+        <File path="src/HALMEM.sv" type="file.verilog" enable="1"/>
+        <File path="src/IKAOPLL/IKAOPLL.v" type="file.verilog" enable="1"/>
+        <File path="src/IKAOPLL/IKAOPLL_modules/IKAOPLL_dac.v" type="file.verilog" enable="1"/>
+        <File path="src/IKAOPLL/IKAOPLL_modules/IKAOPLL_eg.v" type="file.verilog" enable="1"/>
+        <File path="src/IKAOPLL/IKAOPLL_modules/IKAOPLL_lfo.v" type="file.verilog" enable="1"/>
+        <File path="src/IKAOPLL/IKAOPLL_modules/IKAOPLL_op.v" type="file.verilog" enable="1"/>
+        <File path="src/IKAOPLL/IKAOPLL_modules/IKAOPLL_pg.v" type="file.verilog" enable="1"/>
+        <File path="src/IKAOPLL/IKAOPLL_modules/IKAOPLL_primitives.v" type="file.verilog" enable="1"/>
+        <File path="src/IKAOPLL/IKAOPLL_modules/IKAOPLL_reg.v" type="file.verilog" enable="1"/>
+        <File path="src/IKAOPLL/IKAOPLL_modules/IKAOPLL_timinggen.v" type="file.verilog" enable="1"/>
+        <File path="src/IKASCC/IKASCC.v" type="file.verilog" enable="1"/>
+        <File path="src/IKASCC/IKASCC_modules/IKASCC_player_a.v" type="file.verilog" enable="1"/>
+        <File path="src/IKASCC/IKASCC_modules/IKASCC_player_s.v" type="file.verilog" enable="1"/>
+        <File path="src/IKASCC/IKASCC_modules/IKASCC_primitives.v" type="file.verilog" enable="1"/>
+        <File path="src/IKASCC/IKASCC_modules/IKASCC_vrc_a.v" type="file.verilog" enable="1"/>
+        <File path="src/IKASCC/IKASCC_modules/IKASCC_vrc_s.v" type="file.verilog" enable="1"/>
+        <File path="src/TXWKRAM.sv" type="file.verilog" enable="1"/>
+        <File path="src/gowin_osc/gowin_osc.v" type="file.verilog" enable="1"/>
+        <File path="src/gowin_rpll_x20p/gowin_rpll_x20p.v" type="file.verilog" enable="1"/>
+        <File path="src/mmp/MMP_cdc.v" type="file.verilog" enable="1"/>
+        <File path="src/mmp/MMP_dac.v" type="file.verilog" enable="1"/>
+        <File path="src/mmp/MMP_spdif.v" type="file.verilog" enable="1"/>
+        <File path="src/msxsys/BasicSlotUnit.sv" type="file.verilog" enable="1"/>
+        <File path="src/msxsys/FmBiosUnit.sv" type="file.verilog" enable="1"/>
+        <File path="src/msxsys/HalZMMU.sv" type="file.verilog" enable="1"/>
+        <File path="src/msxsys/Ram16kUnit.sv" type="file.verilog" enable="1"/>
+        <File path="src/psram/PsramAccessMUX.sv" type="file.verilog" enable="1"/>
+        <File path="src/psram/PsramController.sv" type="file.verilog" enable="1"/>
+        <File path="src/spdif_tx/spdif_tx.v" type="file.verilog" enable="1"/>
+        <File path="src/tv80/tv80_alu.v" type="file.verilog" enable="1"/>
+        <File path="src/tv80/tv80_core.v" type="file.verilog" enable="1"/>
+        <File path="src/tv80/tv80_mcode.v" type="file.verilog" enable="1"/>
+        <File path="src/tv80/tv80_reg.v" type="file.verilog" enable="1"/>
+        <File path="src/tv80/tv80n.v" type="file.verilog" enable="1"/>
+        <File path="src/tv80/tv80s.v" type="file.verilog" enable="1"/>
+        <File path="src/ym2149_audio/ym2149_audio.vhd" type="file.vhdl" enable="1"/>
+        <File path="src/HALMEM.cst" type="file.cst" enable="1"/>
+        <File path="src/HALMEM.sdc" type="file.sdc" enable="1"/>
+        <File path="src/HALMEM.rao" type="file.gao" enable="0"/>
+        <File path="src/if_harz80.svh" type="file.other" enable="1"/>
+        <File path="src/msxsys/Harz80.svh" type="file.other" enable="1"/>
+        <File path="src/psram/PsramAccessMUX.svh" type="file.other" enable="1"/>
+        <File path="src/psram/PsramController.svh" type="file.other" enable="1"/>
+    </FileList>
+</Project>

@@ -1,0 +1,82 @@
+<?xml version="1" encoding="UTF-8"?>
+<GAO_CONFIG>
+    <Version>3.0</Version>
+    <Mode>Standard</Mode>
+    <AoCore index="0" sample_clock="o_CLK_71M7" trig_type="0" storage_depth="16384" window_num="1" capture_amount="8192" implementation="0" trigger_pos="4" module_name="halmem" force_trigger_by_falling_edge="false" capture_init_data_enabled="false">
+        <SignalList>
+            <Signal capture_enable="true">bus_Z80.clk</Signal>
+            <Bus capture_enable="true" name="bus_Z80.A[15:0]">
+                <Signal>bus_Z80.A[15]</Signal>
+                <Signal>bus_Z80.A[14]</Signal>
+                <Signal>bus_Z80.A[13]</Signal>
+                <Signal>bus_Z80.A[12]</Signal>
+                <Signal>bus_Z80.A[11]</Signal>
+                <Signal>bus_Z80.A[10]</Signal>
+                <Signal>bus_Z80.A[9]</Signal>
+                <Signal>bus_Z80.A[8]</Signal>
+                <Signal>bus_Z80.A[7]</Signal>
+                <Signal>bus_Z80.A[6]</Signal>
+                <Signal>bus_Z80.A[5]</Signal>
+                <Signal>bus_Z80.A[4]</Signal>
+                <Signal>bus_Z80.A[3]</Signal>
+                <Signal>bus_Z80.A[2]</Signal>
+                <Signal>bus_Z80.A[1]</Signal>
+                <Signal>bus_Z80.A[0]</Signal>
+            </Bus>
+            <Signal capture_enable="true">bus_Z80.rd_n</Signal>
+            <Signal capture_enable="true">bus_Z80.wr_n</Signal>
+            <Signal capture_enable="true">bus_Z80.wait_n</Signal>
+            <Signal capture_enable="true">u_HarzMMU/u_BasicSlotSystem/w_BC_PSG</Signal>
+            <Signal capture_enable="true">u_HarzMMU/u_BasicSlotSystem/psg_busy</Signal>
+            <Signal capture_enable="true">u_HarzMMU/bus_Slot.wr</Signal>
+            <Signal capture_enable="true">u_HarzMMU/u_BasicSlotSystem/w_BDIR_PSG</Signal>
+            <Signal capture_enable="false">bus_Z80.mreq_n</Signal>
+            <Signal capture_enable="false">bus_Z80.iorq_n</Signal>
+            <Signal capture_enable="false">bus_Z80.m1_n</Signal>
+        </SignalList>
+        <Triggers>
+            <Trigger index="0">
+                <SignalList>
+                    <Signal>u_HarzMMU/u_BasicSlotSystem/w_BC_PSG</Signal>
+                </SignalList>
+            </Trigger>
+            <Trigger index="1"/>
+            <Trigger index="2"/>
+            <Trigger index="3"/>
+            <Trigger index="4"/>
+            <Trigger index="5"/>
+            <Trigger index="6"/>
+            <Trigger index="7"/>
+            <Trigger index="8"/>
+            <Trigger index="9"/>
+            <Trigger index="10"/>
+            <Trigger index="11"/>
+            <Trigger index="12"/>
+            <Trigger index="13"/>
+            <Trigger index="14"/>
+            <Trigger index="15"/>
+        </Triggers>
+        <MatchUnits>
+            <MatchUnit index="0" enabled="1" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="1" value1="0" trigger="0"/>
+            <MatchUnit index="1" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="1" value1="0" trigger="1"/>
+            <MatchUnit index="2" enabled="0" match_type="0" counter_enable="1" counter_width="2" counter="2" countinuous="0" func="0" value0="1" value1="0" trigger="2"/>
+            <MatchUnit index="3" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="" value1=""/>
+            <MatchUnit index="4" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="" value1=""/>
+            <MatchUnit index="5" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="" value1=""/>
+            <MatchUnit index="6" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="" value1=""/>
+            <MatchUnit index="7" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="" value1=""/>
+            <MatchUnit index="8" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="" value1=""/>
+            <MatchUnit index="9" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="" value1=""/>
+            <MatchUnit index="10" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="" value1=""/>
+            <MatchUnit index="11" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="" value1=""/>
+            <MatchUnit index="12" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="" value1=""/>
+            <MatchUnit index="13" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="" value1=""/>
+            <MatchUnit index="14" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="" value1=""/>
+            <MatchUnit index="15" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="" value1=""/>
+        </MatchUnits>
+        <Expressions type="Static">
+            <Expression>M0</Expression>
+        </Expressions>
+    </AoCore>
+    <GAO_ID>0011100011001101</GAO_ID>
+</GAO_CONFIG>
