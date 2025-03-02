@@ -61,5 +61,5 @@ MGSPICO3zではTangNano9K内に、Z80 CPU(TV80)を実装しMGSDRVとKINROU5に�
 ## 修正履歴
 |date|MGSPICO3z|firmware|note|
 |:--|:--|:--|:--|
-|2025/03/02|MGSPICO3z|mgspico_3.uf2(v2.13), mmp.fs(v2.13)|初版|
+|2025/03/02|MGSPICO3z|mgspico3z.uf2, HALMEM.fs|初版|
 
