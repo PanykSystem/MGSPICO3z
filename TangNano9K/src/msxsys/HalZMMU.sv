@@ -31,14 +31,8 @@ reg 		harz_busy;
 
 // スロットバスへ
 msxslotbus_if	bus_Slot();
-assign bus_Slot.clock		= bus_Z80.clk;
+assign bus_Slot.clock		= bus_Z80.bus_clk;
 assign bus_Slot.reset_n		= i_RST_n;
-// assign bus_Slot.iorq		= (ff_Harz) ? harz_iorq		: ~bus_Z80.iorq_n;
-// assign bus_Slot.merq		= (ff_Harz) ? harz_merq		: ~bus_Z80.mreq_n;
-// assign bus_Slot.wr			= (ff_Harz) ? harz_wr		: ~bus_Z80.wr_n;
-// assign bus_Slot.rd			= (ff_Harz) ? harz_rd		: ~bus_Z80.rd_n;
-// assign bus_Slot.a			= (ff_Harz) ? harz_address	: bus_Z80.A;
-// assign bus_Slot.write_d		= (ff_Harz) ? harz_write_data: bus_Z80.dout;
 
 always_ff @(posedge i_CLK) begin
 	bus_Slot.iorq		<= (ff_Harz) ? harz_iorq		: ~bus_Z80.iorq_n;
@@ -46,14 +40,15 @@ always_ff @(posedge i_CLK) begin
 	bus_Slot.wr			<= (ff_Harz) ? harz_wr			: ~bus_Z80.wr_n;
 	bus_Slot.rd			<= (ff_Harz) ? harz_rd			: ~bus_Z80.rd_n;
 	bus_Slot.a			<= (ff_Harz) ? harz_address		: bus_Z80.A;
-	bus_Slot.write_d	<= (ff_Harz) ? harz_write_data: bus_Z80.dout;
+	bus_Slot.write_d	<= (ff_Harz) ? harz_write_data	: bus_Z80.dout;
 end
 
 
 // CPUへ
 assign bus_Z80.int_n		= `HIGH;
 assign bus_Z80.nmi_n		= `HIGH;
-assign bus_Z80.wait_n		= ~(bus_Slot.busy|m1_busy);
+//assign bus_Z80.wait_n		= ~(bus_Slot.busy|m1_busy);
+assign bus_Z80.wait_n		= ~(bus_Slot.busy);
 assign bus_Z80.di			= bus_Slot.read_d;
 assign bus_Z80.busrq_n		= 1'bz;
 

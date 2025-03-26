@@ -109,6 +109,7 @@ endinterface
 
 interface z80bus_if;
 	logic			clk;
+	logic			bus_clk;
 	logic			reset_n;
 	logic			wait_n;
 	logic			int_n;
@@ -127,6 +128,7 @@ interface z80bus_if;
 	logic	[7:0]	dout;
 	modport cpu(
 		input	clk,
+		input	bus_clk,
 		input	reset_n,
 		input	wait_n,
 		input	int_n,
@@ -146,6 +148,7 @@ interface z80bus_if;
 	);
 	modport peripheral(
 		input	clk,
+		input	bus_clk,
 		input	reset_n,
 		output	wait_n,
 		output	int_n,

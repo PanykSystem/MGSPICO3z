@@ -115,6 +115,28 @@ always_ff@(posedge i_CLK ) begin
 	end
 end
 
+
+// ==========================================================================
+// Timre RD (I/O 0xE6,0xE7)
+// ==========================================================================
+wire clk_895K;
+wire clk_255K69;
+Gowin_CLKDIV_4 uGowin_CLKDIV_4(clk_895K, i_CLK, i_RST_n);
+Gowin_CLKDIV_35 uGowin_CLKDIV_35(clk_255K69, clk_895K, i_RST_n);
+reg [15:0] ff_CounterTimer;
+
+assign bus_Slot.read_d = ((bus_Slot.a[7:0]==8'he6)&&bus_Slot.iorq&&bus_Slot.rd) ? ff_CounterTimer[7:0] : 8'bz;
+assign bus_Slot.read_d = ((bus_Slot.a[7:0]==8'he7)&&bus_Slot.iorq&&bus_Slot.rd) ? ff_CounterTimer[15:8] : 8'bz;
+
+always_ff@(posedge clk_255K69 ) begin
+ 	if( !i_RST_n ) begin
+		ff_CounterTimer <= 16'd0;
+	end
+	else begin
+		ff_CounterTimer <= ff_CounterTimer + 16'd1;
+	end
+end
+
 // ==========================================================================
 // PSG(ym2149_audio)
 // ==========================================================================
@@ -334,7 +356,8 @@ always_ff@(posedge i_CLK ) begin
 		end
 		else begin
 			z80_f_cnt <= z80_f_cnt + 5'd01;
-			if( z80_f_cnt == 5'd19 ) begin
+//			if( z80_f_cnt == 5'd19 ) begin	// for Z80 3.58MHz
+			if( z80_f_cnt == 5'd9 ) begin	// for Z80 7.16MHz
 				z80_f_cnt <= 5'd0;
 				ff_IKASCC_RISE_CNT <= {ff_IKASCC_RISE_CNT[2:0], 1'b0};
 				if( ff_IKASCC_RISE_CNT[0] ) begin

@@ -295,9 +295,10 @@ static void setupHarz(CHarz80Ctrl harz, const MgspicoSettings::MUSICDATA musicTy
 	//
 	harz.WriteMem1(0xFF3E, 0xc9);	// H.NEWS
 	harz.WriteMem1(0xFD9F, 0xc9);	// H.TIMI
-
 	// 
 	uploadHarzBios(harz);
+	harz.WriteMem1(0x0200+0, 0x01);				// 0=Z80, 1=R800+ROM, 2=R800+DRAM
+	//
 	uploadPlayer(harz);	
 	harz.WriteMem1(0x4020, (uint8_t)musicType);	// 0x00=use MGSDRV、0x01=use KINROU5
 

@@ -178,6 +178,11 @@ org BIOS.CALBAS
 
 ; -----------------------------------------------------------------------------
 org	0x0200
+FUNC_CUSTOM_PARAMETER:
+	.cpu_arch
+		db	0x00				; 0=Z80, 1=R800+ROM, 2=R800+DRAM
+
+org	0x0210
 FUNC_DOS_SYSTEMCALL:
 	.begin
 		xor		A
@@ -219,7 +224,7 @@ FUNC_RDSLT:
 		ld		A, 0x2d
 		cp		L
 		jr		nz, .@0
-		ld		A, 0x02	; MSX2+
+		ld		A, 0x03	; 2=MSX2+, 3=turboR
 		ret
 	.@0
 		xor		A
@@ -368,16 +373,43 @@ FUNC_ENASLT:
 FUNC_CALSLT:
 	.begin
 		; do nothing
+
+	.getcpu	; 0183H
+		push	IY		; IYの上位バイト=スロット番号
+		pop		HL
+		ld		A, H
+		or		A
+		ret		nz
+		push	IX		; IX=呼び出しアドレス
+		pop		HL
+		ld		A, H
+		cp		0x01
+		ret		nz
+		ld		A, L
+		cp		0x83
+		ret		nz
+		;
+		ld		A, (FUNC_CUSTOM_PARAMETER.cpu_arch)	; CPU動作を返す
 		ret
 ; -----------------------------------------------------------------------------
 FUNC_CALLF:
 	.begin
 		; do nothing
+
+		ld		A, 0b111100
+		out		(0x00), A		; 未実装BIOSがコールされた
+		halt
+
 		ret
 ; -----------------------------------------------------------------------------
 FUNC_KEYINT:
 	.begin
 		; do nothing
+
+		ld		A, 0b111110
+		out		(0x00), A		; 未実装BIOSがコールされた
+		halt
+
 		ret
 
 	

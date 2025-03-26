@@ -2,7 +2,7 @@
 <GAO_CONFIG>
     <Version>3.0</Version>
     <Mode>Standard</Mode>
-    <AoCore index="0" sample_clock="o_CLK_71M7" trig_type="0" storage_depth="16384" window_num="1" capture_amount="8192" implementation="0" trigger_pos="4" module_name="halmem" force_trigger_by_falling_edge="false" capture_init_data_enabled="false">
+    <AoCore index="0" sample_clock="o_CLK_71M7" trig_type="0" storage_depth="8192" window_num="1" capture_amount="8192" implementation="0" trigger_pos="4" module_name="halmem" force_trigger_by_falling_edge="false" capture_init_data_enabled="false">
         <SignalList>
             <Signal capture_enable="true">bus_Z80.clk</Signal>
             <Bus capture_enable="true" name="bus_Z80.A[15:0]">
@@ -26,18 +26,32 @@
             <Signal capture_enable="true">bus_Z80.rd_n</Signal>
             <Signal capture_enable="true">bus_Z80.wr_n</Signal>
             <Signal capture_enable="true">bus_Z80.wait_n</Signal>
-            <Signal capture_enable="true">u_HarzMMU/u_BasicSlotSystem/w_BC_PSG</Signal>
-            <Signal capture_enable="true">u_HarzMMU/u_BasicSlotSystem/psg_busy</Signal>
-            <Signal capture_enable="true">u_HarzMMU/bus_Slot.wr</Signal>
-            <Signal capture_enable="true">u_HarzMMU/u_BasicSlotSystem/w_BDIR_PSG</Signal>
-            <Signal capture_enable="false">bus_Z80.mreq_n</Signal>
-            <Signal capture_enable="false">bus_Z80.iorq_n</Signal>
-            <Signal capture_enable="false">bus_Z80.m1_n</Signal>
+            <Bus capture_enable="true" name="bus_Z80.di[7:0]">
+                <Signal>bus_Z80.di[7]</Signal>
+                <Signal>bus_Z80.di[6]</Signal>
+                <Signal>bus_Z80.di[5]</Signal>
+                <Signal>bus_Z80.di[4]</Signal>
+                <Signal>bus_Z80.di[3]</Signal>
+                <Signal>bus_Z80.di[2]</Signal>
+                <Signal>bus_Z80.di[1]</Signal>
+                <Signal>bus_Z80.di[0]</Signal>
+            </Bus>
+            <Bus capture_enable="true" name="bus_Z80.dout[7:0]">
+                <Signal>bus_Z80.dout[7]</Signal>
+                <Signal>bus_Z80.dout[6]</Signal>
+                <Signal>bus_Z80.dout[5]</Signal>
+                <Signal>bus_Z80.dout[4]</Signal>
+                <Signal>bus_Z80.dout[3]</Signal>
+                <Signal>bus_Z80.dout[2]</Signal>
+                <Signal>bus_Z80.dout[1]</Signal>
+                <Signal>bus_Z80.dout[0]</Signal>
+            </Bus>
+            <Signal capture_enable="true">u_HarzMMU/u_BasicSlotSystem/ff_IKASCC_CS_n</Signal>
         </SignalList>
         <Triggers>
             <Trigger index="0">
                 <SignalList>
-                    <Signal>u_HarzMMU/u_BasicSlotSystem/w_BC_PSG</Signal>
+                    <Signal>u_HarzMMU/u_BasicSlotSystem/ff_IKASCC_CS_n</Signal>
                 </SignalList>
             </Trigger>
             <Trigger index="1"/>
@@ -57,7 +71,7 @@
             <Trigger index="15"/>
         </Triggers>
         <MatchUnits>
-            <MatchUnit index="0" enabled="1" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="1" value1="0" trigger="0"/>
+            <MatchUnit index="0" enabled="1" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="0" value1="0" trigger="0"/>
             <MatchUnit index="1" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="1" value1="0" trigger="1"/>
             <MatchUnit index="2" enabled="0" match_type="0" counter_enable="1" counter_width="2" counter="2" countinuous="0" func="0" value0="1" value1="0" trigger="2"/>
             <MatchUnit index="3" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="" value1=""/>
@@ -78,5 +92,5 @@
             <Expression>M0</Expression>
         </Expressions>
     </AoCore>
-    <GAO_ID>0011100011001101</GAO_ID>
+    <GAO_ID>1001101111000100</GAO_ID>
 </GAO_CONFIG>

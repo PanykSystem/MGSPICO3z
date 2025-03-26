@@ -70,6 +70,7 @@ wire clk_SPIRX		= clk_71M7;
 wire clk_PSRAM		= clk_71M7;
 wire clk_PSRAM_p	= clk_71M7_p;
 wire clk_CONTROL	= clk_71M7;
+wire clk_SND		= i_CLK_3M579;
 wire clk_Z80CPU		= i_CLK_3M579;
 wire clk_SPDIF		= i_CLK_3M072;		// for S/PIDIF 48KHz(32bits x2) (by External)
 wire clk_DAC		= clk_17M9;
@@ -96,7 +97,7 @@ wire signed [15:0]	SOUND_DAC_z;
 
 MMP_cdc_L2F u_DacCdc (
 	.i_RST_n	(i_RST_n		),
-	.i_CLK_A	(clk_Z80CPU		),
+	.i_CLK_A	(clk_SND		),
 	.i_DATA_A	(SOUND_ALL_y	),
 	.i_CLK_B	(clk_DAC		),
 	.o_DATA_B	(SOUND_DAC_z	)
@@ -121,7 +122,7 @@ MMP_dac u_Dac (
 wire signed [15:0]	SOUND_SPDIF_z;
 MMP_cdc_F2L u_SpdifCdc (
 	.i_RST_n	(i_RST_n		),
-	.i_CLK_A	(clk_Z80CPU		),
+	.i_CLK_A	(clk_SND		),
 	.i_DATA_A	(SOUND_ALL_y	),
 	.i_CLK_B	(clk_SPDIF		),
 	.o_DATA_B	(SOUND_SPDIF_z	)
@@ -189,7 +190,12 @@ HarzMMU u_HarzMMU
 //-----------------------------------------------------------------------
 // TV80
 //-----------------------------------------------------------------------
-assign bus_Z80.clk = clk_Z80CPU;
+wire clk_TV80CPU;
+Gowin_rPLLx2 u_Gowin_rPLLx2(clk_TV80CPU, i_CLK_3M579);
+assign bus_Z80.clk = clk_TV80CPU;
+//assign bus_Z80.clk = clk_Z80CPU;
+
+assign bus_Z80.bus_clk = i_CLK_3M579;
 z80bus_if bus_Z80();
 tv80s u_tv80s(
 	.reset_n			(bus_Z80.reset_n	),
