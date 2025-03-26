@@ -573,12 +573,16 @@ static bool playMusic(
 	CSsd1306I2c &disp, CHarz80Ctrl &harz, MusFiles &files, const int selectFileNo)
 {
 	harz.SetCCmd(harz80::CCMD_STOP);
-	// TODO: ここで完全に曲が停止している（DRVの処理ルーチンを抜け楽曲データを参照していないといえる状態）
-	//		 になっていることを知る方法はないか？
-	//		 DRVがデータを参照している状態で曲データを入れ替えてしまうとハングアップしてしまう
+	// NOTE: 
+	// ここで完全に曲が停止している（DRVの処理ルーチンを抜け楽曲データを参照していないといえる状態）
+	// になっていることを知る方法はないか？
+	// DRVがデータを参照している状態で曲データを入れ替えてしまうとハングアップしてしまう
+	// 現状は、暫定手的に32msのウェイトを入れている
 	busy_wait_ms(32);
 
+	// CPUにバスアクセスを止めさせ、直接メモリに曲データを書き込む
 	harz.SetBusak(0);
+	busy_wait_ms(10);
 	harz.OutputIo(0xA8, 0b11111111);
 	bool bRetc = uploadMusicFileData(harz, files, selectFileNo);
 	if( bRetc ){
@@ -794,7 +798,7 @@ static void task_sw(const uint32_t nowTime)
 
 static void tasks(
 	const uint32_t nowTime, CHarz80Ctrl &harz, harz80::WRWKRAM *pWkram,
-	int playNo, uint8_t oldCcmdCnt)
+	uint8_t oldCcmdCnt, CMsCount *pIgnoringTim)
 {
 	// SWの押下状態をイベントに変換する
 	task_sw(nowTime);
@@ -810,8 +814,9 @@ static void tasks(
 			oldLoopCnt = pWkram->info.mgs.LOOPCT;
 			g_Events.Post(EVENT_LOOPCT, (int)pWkram->info.mgs.LOOPCT);
 		}
-		// 再生が終了したらEVENT_ENDMUSICを発報する（再生開始直後はPLAYFG==0なので、2<play_timeぐらいからチェックする）
-		if( 2 < pWkram->play_time && playNo != 0 && pWkram->info.mgs.PLAYFG == 0 ){
+		// 再生が終了したらEVENT_ENDMUSICを発報する（ただし再生開始直後から100msが経過するまでは何もしない）
+		if( pIgnoringTim->IsTimeOut() && pWkram->info.mgs.PLAYFG == 0 ){
+			pIgnoringTim->Cancel();
 			g_Events.Post(EVENT_ENDMUSIC);
 		}
 		//
@@ -843,8 +848,13 @@ static void dispPlayer(CSsd1306I2c &disp, CHarz80Ctrl &harz, MusFiles &files)
 	harz80::WRWKRAM wkram;
 	int playNo = 0;	
 	CMsCount updDispTim(16/*ms*/);
-	CMsCount dispListTim;
 	CMsCount fpsTim(1000/*ms*/);
+
+	static const uint32_t DISPLIST_TIME = 1000; // ms
+	CMsCount dispListTim;
+	static const uint32_t IGNORING_TIME = 1000; // ms
+	CMsCount ignoringTim;
+
 	SHIFTKEY shift = SHIFT_NONE;
 
 	if( g_Setting.GetAutoRun() ){
@@ -856,7 +866,7 @@ static void dispPlayer(CSsd1306I2c &disp, CHarz80Ctrl &harz, MusFiles &files)
 		aliveLamp();
 		//
 		const uint32_t nowTime = GetTimerCounterMS();
-		tasks(nowTime, harz, &wkram, playNo, oldCcmdCnt);
+		tasks(nowTime, harz, &wkram, oldCcmdCnt, &ignoringTim);
 		EVENT_DT dt;
 		if( g_Events.Receive(&dt) ){
 			switch(dt.MsgType)
@@ -918,6 +928,7 @@ static void dispPlayer(CSsd1306I2c &disp, CHarz80Ctrl &harz, MusFiles &files)
 				case EVENT_REQ_PLAY:
 				{
 					if( playMusic(disp, harz, files, dt.Value) ){
+						ignoringTim.Reset(IGNORING_TIME);
 						playNo = dt.Value;
 						dispListTim.Cancel();
 					}
@@ -937,7 +948,7 @@ static void dispPlayer(CSsd1306I2c &disp, CHarz80Ctrl &harz, MusFiles &files)
 				{
 					changeCurPos(files.GetNumFiles(), &topFileNo, &curNo, +1, true);
 					// ファイルリストを1秒間は表示する
-					dispListTim.Reset(1000);
+					dispListTim.Reset(DISPLIST_TIME);
 					break;
 				}
 				// カーソルを一行上へ移動するよう指示された
@@ -945,7 +956,7 @@ static void dispPlayer(CSsd1306I2c &disp, CHarz80Ctrl &harz, MusFiles &files)
 				{
 					changeCurPos(files.GetNumFiles(), &topFileNo, &curNo, -1, true);
 					// ファイルリストを1秒間は表示する
-					dispListTim.Reset(1000);
+					dispListTim.Reset(DISPLIST_TIME);
 					break;
 				}
 				// 演奏が周回下した（dt.Valueに回数が隠されている。演奏開始直後は0）
@@ -971,6 +982,7 @@ static void dispPlayer(CSsd1306I2c &disp, CHarz80Ctrl &harz, MusFiles &files)
 							changeCurPos(files.GetNumFiles(), &topFileNo, &playNo, +1, true);
 						}
 						if( playMusic(disp, harz, files, playNo) ){
+							ignoringTim.Reset(IGNORING_TIME);
 							curNo = playNo;
 							dispListTim.Cancel();
 						}
@@ -1000,7 +1012,7 @@ static void dispPlayer(CSsd1306I2c &disp, CHarz80Ctrl &harz, MusFiles &files)
 			}
 			else {
 				// 再生時間の表示
-				const uint32_t timev = (wkram.play_time*166) / 10;
+				const uint32_t timev = (wkram.play_time*166) / 10;	// ms
 				displayPlayTime(disp, files, timev, playNo, true);
 				// 再生マークの表示
 				if( playNo != 0 ){
