@@ -31,6 +31,10 @@
 #include "oled/SOUNDLOGO.h"
 
 // -----------------------------------------------------------------------------
+// VERSION
+static const char *pFIRMVERSION = "v3.1.0";
+
+// -----------------------------------------------------------------------------
 static char tempWorkPath[255+1];
 static const int  Z80_PAGE_SIZE = 16*1024;
 static uint8_t g_WorkRam[Z80_PAGE_SIZE];
@@ -114,12 +118,12 @@ static const INITGPTABLE g_CartridgeMode_GpioTable[] = {
 
 static void setupGpio(const INITGPTABLE pTable[] )
 {
-	for (int t = 0; pTable[t].gpno != -1; ++t) {
+	for( int t = 0; pTable[t].gpno != -1; ++t) {
 		const int no = pTable[t].gpno;
 		gpio_init(no);
 		gpio_put(no, pTable[t].init_value);			// PIN方向を決める前に値をセットする
 		gpio_set_dir(no, pTable[t].direction);
-		if (pTable[t].bPullup)
+		if( pTable[t].bPullup)
 		 	gpio_pull_up(no);
 		else
 		 	gpio_disable_pulls(no);
@@ -272,9 +276,10 @@ static bool uploadMusicFileData(CHarz80Ctrl &harz, const MusFiles &files, const 
 	return false;
 }
 
-static void setupHarz(CHarz80Ctrl harz, const MgspicoSettings::MUSICDATA musicType)
+static void setupHarz(CHarz80Ctrl harz, const MgspicoSettings stt)
 {
 	harz.SetBusak(0);
+	harz.SetClkMode((uint8_t)stt.GetHarz80Clock());
 
 	// ページnのRAMのスロットアドレス
 	harz.OutputIo(0xA8, 0b11111111);
@@ -300,10 +305,10 @@ static void setupHarz(CHarz80Ctrl harz, const MgspicoSettings::MUSICDATA musicTy
 	harz.WriteMem1(0x0200+0, 0x01);				// 0=Z80, 1=R800+ROM, 2=R800+DRAM
 	//
 	uploadPlayer(harz);	
-	harz.WriteMem1(0x4020, (uint8_t)musicType);	// 0x00=use MGSDRV、0x01=use KINROU5
+	harz.WriteMem1(0x4020, (uint8_t)stt.GetMusicType());	// 0x00=use MGSDRV、0x01=use KINROU5
 
 	// MGSDRV/KINROU5のUpload
-	if( musicType == MgspicoSettings::MUSICDATA::MGS )
+	if( stt.GetMusicType() == MgspicoSettings::MUSICDATA::MGS )
 		g_Works.bReadErrMGSDRV = !uploadMGSDRV(harz);
 	else
 		g_Works.bReadErrKINROU5 = !uploadKINROU5(harz);
@@ -318,15 +323,13 @@ static void setupHarz(CHarz80Ctrl harz, const MgspicoSettings::MUSICDATA musicTy
 static void dislplayTitle(CSsd1306I2c &disp, const MgspicoSettings::MUSICDATA musType)
 {
 	disp.Clear();
-
 	disp.FillBox(6, 0, 116, 33, true);
 	disp.Strings8x16(3*8+0, 0*16, "MGSPICO 3z", true);
-	disp.Strings8x16(8*8+0, 1*16, "v3.00", true);
-//	disp.Box(4, 0, 116, 30, true);
-
+	disp.Strings8x16(8*8+0, 1*16, pFIRMVERSION, true);
 	disp.Strings8x16(1*8+0, 2*16, "by harumakkin", false);
-	const char *pForDrv[] = {"for MGS", "for MuSICA", "for TGF", "for VGM"};
-	disp.Strings8x16(1*8+0, 3*16, pForDrv[(int)musType], false);
+	// const char *pForDrv[] = {"for MGS", "for MuSICA", "for TGF", "for VGM"};
+	// disp.Strings8x16(1*8+0, 3*16, pForDrv[(int)musType], false);
+	disp.Strings8x16(1*8+0, 3*16, "  MGS, MuSICA", false);
 	disp.Present();
 	return;
 }
@@ -342,7 +345,7 @@ static void init()
 #ifdef FOR_DEBUG
 	stdio_init_all();
 	busy_wait_ms(1500);	// for first call printf.
-	printf("HALMEM by harumakkin. 2024 -------------- \n");
+	printf("MGSPICO3z by harumakkin. 2025 -------------- \n");
 #endif
 
 	// clock
@@ -551,7 +554,7 @@ static bool changeCurPos(
 	if( *pCurNo <= 0 ) {
 		*pCurNo = (bRot)?num:1;
 	}
-	else if (num < *pCurNo ) {
+	else if( num < *pCurNo ) {
 		*pCurNo = (bRot)?1:num;
 	}
 
@@ -1208,7 +1211,7 @@ int main()
 
 	// HARZ80制御オブジェクト
 	pHarz->Setup();
-	setupHarz(*pHarz, g_Setting.GetMusicType());
+	setupHarz(*pHarz, g_Setting);
 
 	// 
 	if( g_Works.bReadErrMGSDRV || g_Works.bReadErrKINROU5 ){

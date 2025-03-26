@@ -5,14 +5,15 @@
 //Part Number: GW1NR-LV9QN88PC6/I5
 //Device: GW1NR-9
 //Device Version: C
-//Created Time: Sun Mar  2 20:19:21 2025
+//Created Time: Mon Mar 24 23:36:48 2025
 
 //Change the instance name and port connections to the signal names
 //--------Copy here to design--------
 
-    Gowin_rPLLx2 your_instance_name(
+    Gowin_rPLLxV2 your_instance_name(
         .clkout(clkout), //output clkout
-        .clkin(clkin) //input clkin
+        .clkin(clkin), //input clkin
+        .fbdsel(fbdsel) //input [5:0] fbdsel
     );
 
 //--------Copy end-------------------

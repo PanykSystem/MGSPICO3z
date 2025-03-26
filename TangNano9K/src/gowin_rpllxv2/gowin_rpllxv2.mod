@@ -5,23 +5,23 @@
 -part_number GW1NR-LV9QN88PC6/I5
 
 
--mod_name Gowin_rPLLx2
--file_name gowin_rpllx2
--path C:/Users/Tomo/Desktop/Development/00.MyProject/MGSPICO3z/TangNano9K/src/gowin_rpllx2/
+-mod_name Gowin_rPLLxV2
+-file_name gowin_rpllxv2
+-path C:/Users/Tomo/Desktop/Development/00.MyProject/MGSPICO3z/TangNano9K/src/gowin_rpllxv2/
 -type PLL
 -rPll true
 -file_type vlg
 -dev_type GW1NR-9C
 -dyn_idiv_sel false
 -idiv_sel 1
--dyn_fbdiv_sel false
--fbdiv_sel 2
+-dyn_fbdiv_sel true
+-fbdiv_sel 1
 -dyn_odiv_sel false
--odiv_sel 64
+-odiv_sel 112
 -dyn_da_en false
 -rst_sig false
 -rst_sig_p false
--fclkin 3.589
+-fclkin 3.579
 -clkfb_sel 0
 -en_lock false
 -clkout_bypass false

@@ -26,7 +26,7 @@
         <File path="src/gowin_clkdiv_4/gowin_clkdiv_4.v" type="file.verilog" enable="1"/>
         <File path="src/gowin_osc/gowin_osc.v" type="file.verilog" enable="1"/>
         <File path="src/gowin_rpll_x20p/gowin_rpll_x20p.v" type="file.verilog" enable="1"/>
-        <File path="src/gowin_rpllx2/gowin_rpllx2.v" type="file.verilog" enable="1"/>
+        <File path="src/gowin_rpllxv2/gowin_rpllxv2.v" type="file.verilog" enable="1"/>
         <File path="src/mmp/MMP_cdc.v" type="file.verilog" enable="1"/>
         <File path="src/mmp/MMP_dac.v" type="file.verilog" enable="1"/>
         <File path="src/mmp/MMP_spdif.v" type="file.verilog" enable="1"/>

@@ -30,4 +30,5 @@ public:
 	void ResetCpu();
 	void SetBusak(const int n);
 	void SetCCmd(const uint8_t ccmd);
+	void SetClkMode(const uint8_t dt8);
 };

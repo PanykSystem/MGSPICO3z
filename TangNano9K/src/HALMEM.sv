@@ -172,6 +172,7 @@ soundbus_if		bus_Sound();
 harzbus_if		bus_Harz();
 txworkram_if	bus_TxWork();
 ccmnd_if		bus_CCmd();
+reg [4:0]		masicn_IKASCC;
 
 HarzMMU u_HarzMMU
 (
@@ -183,6 +184,7 @@ HarzMMU u_HarzMMU
 	.bus_TxWork			(bus_TxWork		),
 	.bus_CCmd			(bus_CCmd		),
 	.bus_Sound			(bus_Sound		),
+	.i_masicn_IKASCC	(masicn_IKASCC	),
 	.o_LED				(o_LED			)
 );
 
@@ -191,12 +193,12 @@ HarzMMU u_HarzMMU
 // TV80
 //-----------------------------------------------------------------------
 wire clk_TV80CPU;
-Gowin_rPLLx2 u_Gowin_rPLLx2(clk_TV80CPU, i_CLK_3M579);
-assign bus_Z80.clk = clk_TV80CPU;
-//assign bus_Z80.clk = clk_Z80CPU;
+Gowin_rPLLxV2 u_Gowin_rPLLxV2(clk_TV80CPU, i_CLK_3M579, spirx_tv80clk_fbdsel);	// x1 = 6'd63、x2 = 6'd62
 
-assign bus_Z80.bus_clk = i_CLK_3M579;
 z80bus_if bus_Z80();
+assign bus_Z80.bus_clk	= i_CLK_3M579;
+assign bus_Z80.clk		= clk_TV80CPU;
+
 tv80s u_tv80s(
 	.reset_n			(bus_Z80.reset_n	),
 	.clk				(bus_Z80.clk		),
@@ -271,13 +273,14 @@ wire spirx_z80mem_rd_1	= (spirx_bitcnt == 7'd24 && spirx_rsv_data[23:16] == TXCM
 wire spirx_harz_reset	= (spirx_bitcnt == 7'd08 && spirx_rsv_data[7:0] == TXCMD_HARZ_RESET		);
 wire spirx_harz_run		= (spirx_bitcnt == 7'd08 && spirx_rsv_data[7:0] == TXCMD_HARZ_RUN		);
 wire spirx_harz_stop	= (spirx_bitcnt == 7'd08 && spirx_rsv_data[7:0] == TXCMD_HARZ_STOP		);
+wire spirx_harz_clkmode	= (spirx_bitcnt == 7'd16 && spirx_rsv_data[15:8] == TXCMD_HARZ_CLKMODE	);
 //
 wire spirx_harz_getsts	= (spirx_bitcnt == 7'd08 && spirx_rsv_data[7:0] == TXCMD_HARZ_GETSTS	);
 wire spirx_harz_setcmd	= (spirx_bitcnt == 7'd16 && spirx_rsv_data[15:8] == TXCMD_HARZ_SETCMD	);
 
 
 reg [6:0] spirx_bytecnt;
-
+reg [5:0] spirx_tv80clk_fbdsel;		// x1 = 6'd63、x2 = 6'd62
 
 reg [8:0] counter_for_cpureset;
 
@@ -319,6 +322,8 @@ typedef enum logic [4:0]
 	MEMBUS_HARZ_SETCMD_2,
 	MEMBUS_HARZ_SETCMD_3,
 	//
+	MEMBUS_HARZ_CLKMODE,
+	//
 	MEMBUS_FINISH
 } membus_sts_t;
 membus_sts_t	membus_sts;
@@ -343,6 +348,11 @@ always @(posedge clk_SPIRX) begin
 		bus_Z80.reset_n <= `LOW;
 		bus_Z80.busrq_n <= `LOW;		//cpu を沈黙させる
 		counter_for_cpureset <= 9'd0;
+		//
+		spirx_tv80clk_fbdsel <= 6'd63;/*x1*/
+		masicn_IKASCC <= 5'd19;
+		//spirx_tv80clk_fbdsel <= 6'd62;/*x2*/
+		//masicn_IKASCC <= 5'd9;
 	end
 	else begin
 		if (/*spirx_ena_rise||*/spirx_ena_fall) begin
@@ -412,7 +422,11 @@ always @(posedge clk_SPIRX) begin
 					membus_sts <= MEMBUS_HARZ_SETCMD;
 					membus_data[7:0] <= spirx_rsv_data[7:0];
 				end
-
+				// -----------------------------------------------------
+				if( spirx_harz_clkmode ) begin
+					membus_sts <= MEMBUS_HARZ_CLKMODE;
+					membus_data[7:0] <= spirx_rsv_data[7:0];
+				end
 			end
 			// -----------------------
 			MEMBUS_CPU_RESET:begin
@@ -533,7 +547,7 @@ always @(posedge clk_SPIRX) begin
 			MEMBUS_Z80IO_RD_3: begin
 				if( !bus_Harz.busy ) begin
 					membus_sts <= MEMBUS_FINISH;
-//					spirx_sxv_data[63:56] <= bus_Harz.read_data[7:0];
+					//spirx_sxv_data[63:56] <= bus_Harz.read_data[7:0];
 				end
 			end
 			// Z80MEM書込み(1Byte) ------------
@@ -565,8 +579,20 @@ always @(posedge clk_SPIRX) begin
 			MEMBUS_Z80MEM_RD1_3: begin
 				if( !bus_Harz.busy ) begin
 					membus_sts <= MEMBUS_FINISH;
-//					spirx_sxv_data[63:56] <= bus_Harz.read_data[7:0];
+					//spirx_sxv_data[63:56] <= bus_Harz.read_data[7:0];
 				end
+			end
+			// -------------------------------
+			MEMBUS_HARZ_CLKMODE: begin
+				if( membus_data[7:0]==6'd0 ) begin
+					spirx_tv80clk_fbdsel <= 6'd63/*x1*/;
+					masicn_IKASCC <= 5'd19;
+				end
+				else begin
+					spirx_tv80clk_fbdsel <= 6'd62;/*x2*/;
+					masicn_IKASCC <= 5'd9;
+				end
+				membus_sts <= MEMBUS_FINISH;
 			end
 			// -------------------------------
 			default: begin

@@ -23,6 +23,7 @@ void MgspicoSettings::setDefault(SETTINGDATA *p)
 	p->RandomPlay = 0;
 	p->EnforceOPLL = 0;
 	p->SccModule = SCCMODULE::IKASCC;
+	p->Harz80Clock = HARZ80CLOCK::HARZ3M58HZ;
 	for( int t = 0; t < (int)sizeof(m_Setting.Padding); ++t)
 		p->Padding[t] = 0x00;
 	return;
@@ -41,6 +42,7 @@ const MgspicoSettings::ITEM *MgspicoSettings::GetItem(const int indexItem) const
 		{"auto run",	2,	{"OFF", "ON", }						},
 		{"random",		2,	{"OFF", "ON", }						},
 		{"use.SCC",		1,	{"IKASCC", "WTS", }					},
+		{"harz clk",	2,	{"3.58MHz", "7.16MHz", }			},
 	//	{"clock",		2,	{"125MHz", "240MHz", }				},
 	};
 	return &items[indexItem];
@@ -54,6 +56,7 @@ void MgspicoSettings::SetChioce(const int indexItem, const int no)
 		case 1:	m_Setting.AutoRun = no;						break;
 		case 2:	m_Setting.RandomPlay = no;					break;
 		case 3:	m_Setting.SccModule = (SCCMODULE)no;		break;
+		case 4:	m_Setting.Harz80Clock = (HARZ80CLOCK)no;	break;
 	//	case x:	m_Setting.RpCpuClock = (RPxxxxCLOCK)no;		break;
 		default:											break;
 	}
@@ -69,7 +72,8 @@ int MgspicoSettings::GetChioce(const int indexItem) const
 		case 1:	no = m_Setting.AutoRun;				break;
 		case 2:	no = m_Setting.RandomPlay;			break;
 		case 3:	no = (int)m_Setting.SccModule;		break;
-	//	case x:	no = (int)m_Setting.RpCpuClock;	break;
+		case 4:	no = (int)m_Setting.Harz80Clock;	break;
+	//	case x:	no = (int)m_Setting.RpCpuClock;		break;
 		default:									break;
 	}
 	return no;
@@ -165,5 +169,14 @@ void MgspicoSettings::SetSccModule(const MgspicoSettings::SCCMODULE mod)
 	return;
 }
 
+MgspicoSettings::HARZ80CLOCK MgspicoSettings::GetHarz80Clock() const
+{
+	return m_Setting.Harz80Clock;
+}
 
+void MgspicoSettings::SetHarz80Clock(const MgspicoSettings::HARZ80CLOCK clk)
+{
+	m_Setting.Harz80Clock = clk;
+	return;
+}
 

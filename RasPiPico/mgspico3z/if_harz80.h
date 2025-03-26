@@ -27,6 +27,7 @@ enum TXCMD : uint8_t
 	//
 	TXCMD_HARZ_GETSTS	= 0x14,		// 動作状態を返す
 	TXCMD_HARZ_SETCMD	= 0x15,
+	TXCMD_HARZ_CLKMODE	= 0x16,		// Z80速度 0=3.58MHz, 1=7.16Mhz
 };
 
 enum CCMD : uint8_t

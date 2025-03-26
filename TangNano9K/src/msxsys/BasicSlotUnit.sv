@@ -14,6 +14,8 @@ module BasicSlotUnit
 	//
 	soundbus_if.src				bus_Sound,
 	//
+	input	wire [4:0]			i_masicn_IKASCC,
+	//
 	output	wire [5:0]			o_LED
 );
 
@@ -356,8 +358,9 @@ always_ff@(posedge i_CLK ) begin
 		end
 		else begin
 			z80_f_cnt <= z80_f_cnt + 5'd01;
-//			if( z80_f_cnt == 5'd19 ) begin	// for Z80 3.58MHz
-			if( z80_f_cnt == 5'd9 ) begin	// for Z80 7.16MHz
+			//if( z80_f_cnt == 5'd19 ) begin	// for Z80 3.58MHz
+			//if( z80_f_cnt == 5'd9 ) begin		// for Z80 7.16MHz
+			if( z80_f_cnt == i_masicn_IKASCC ) begin
 				z80_f_cnt <= 5'd0;
 				ff_IKASCC_RISE_CNT <= {ff_IKASCC_RISE_CNT[2:0], 1'b0};
 				if( ff_IKASCC_RISE_CNT[0] ) begin

@@ -11,10 +11,11 @@ public:
 		const int num;
 		const char *pChoices[4];
 	};
-	const static int NUM_MENUITEMS = 4;
+	const static int NUM_MENUITEMS = 5;
 	enum class RPxxxxCLOCK : uint8_t {CLK125MHZ, CLK240MHZ};
 	enum class MUSICDATA : uint8_t	{MGS=0, KIN5=1, TGF=2, VGM=3};
 	enum class SCCMODULE : uint8_t {IKASCC=0, HRASCC=1};
+	enum class HARZ80CLOCK : uint8_t {HARZ3M58HZ=0, HARZ7M16HZ=1};
 
 private:
 #pragma pack(push,1)
@@ -26,7 +27,8 @@ private:
 		uint8_t		RandomPlay;			// != 0 : ランダムの曲順で再生する
 		uint8_t		EnforceOPLL;		// != 0 : OPLLの存在模倣する
 		SCCMODULE	SccModule;
-		uint8_t		Padding[122];		// (構造体サイズを128byteに保つこと)
+		HARZ80CLOCK	Harz80Clock;
+		uint8_t		Padding[121];		// (構造体サイズを128byteに保つこと)
 	};
 #pragma pack(pop)
 
@@ -67,5 +69,8 @@ public:
 
 	SCCMODULE GetSccModule() const;
 	void SetSccModule(const SCCMODULE mod);
+
+	HARZ80CLOCK	GetHarz80Clock() const;
+	void SetHarz80Clock(const HARZ80CLOCK clk);
 
 };

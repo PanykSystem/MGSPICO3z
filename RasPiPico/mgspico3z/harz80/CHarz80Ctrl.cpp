@@ -203,3 +203,17 @@ void CHarz80Ctrl::SetCCmd(const uint8_t ccmd)
 	return;
 }
 
+/* dt8: 0=3.58Mhz、0!=7.16MHz
+*/
+void CHarz80Ctrl::SetClkMode(const uint8_t dt8)
+{
+	static const int LEN=2;
+	uint8_t sx[LEN];
+	sx[0] = harz80::TXCMD_HARZ_CLKMODE;
+	sx[1] = dt8;
+
+	gpio_put( HARZ80_SPI_PIN_CS_n, 0 );	/* Set CS# low */
+	spi_write_blocking (HARZ80_SPI_DEV, sx, LEN);
+	gpio_put( HARZ80_SPI_PIN_CS_n, 1 );	/* Set CS# high */
+	return;
+}
