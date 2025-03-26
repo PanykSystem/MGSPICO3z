@@ -1,5 +1,5 @@
 # MGSPICO3z 
-2025/03/02 harumakkin
+2025/03/26 harumakkin
 
 ![mgspico3-01](docs/pics/mgspico3.png)</br>**fig.1 MGSPICO3**
 
@@ -59,7 +59,8 @@ MGSPICO3zではTangNano9K内に、Z80 CPU(TV80)を実装しMGSDRVとKINROU5に�
 (C) 1996,1997 Keiichi Kuroda / BTO(MuSICA Laboratory) All rights reserved. https://sakuramail.net/fswold/music.html#muskin
 
 ## 修正履歴
-|date|MGSPICO3z|firmware|note|
-|:--|:--|:--|:--|
-|2025/03/02|MGSPICO3z|mgspico3z.uf2, HALMEM.fs|初版|
+|date|firmware|note|
+|:--|:--|:--|
+|2025/03/26|mgspico3z_firmware_v3.1.0|●機能追加:<br>TV80のクロックを3.58MHzと7.16MHzの二つから選べるようにしました。（[●]ボタンを押しながら電源ONでセッティング画面が起動します。セッティング画面から抜けるには[●]ボタンを長押しします。）<br>●bugfix:<br>演奏が終了し次の曲を再生するときまれに再生しないことがある不具合を修正しました。|
+|2025/03/02|mgspico3z_firmware_v3.00|初版|
 
