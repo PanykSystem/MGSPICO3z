@@ -1,11 +1,11 @@
 # MGSPICO3z 
-2025/03/26 harumakkin
+2025/05/25 harumakkin
 
 ![mgspico3-01](docs/pics/mgspico3.png)</br>**fig.1 MGSPICO3**
 
 ## これは何？
 MGSPICO3zは以前製作した[MGSPICO3](https://github.com/cliffgraph/MGSPICO3)のZ80 CPUエミュレータ部分を、Z80 CPUコア[TV80](https://github.com/hutch31/tv80)に変更したバージョンです。MGSPICO3ではRaspberryPiPico2内で、音源ドライバMGSDRVとKINROU5を自作Z80エミュレーター上で動作させ、TangNano9K内の音源チップコアにアクセスしてMGS、MuSICA の楽曲を演奏する仕組みでした。
-MGSPICO3zではTangNano9K内に、Z80 CPU(TV80)を実装しMGSDRVとKINROU5による演奏を行うようになりました。RaspberryPiPico2側はSDカードから楽曲ファイルをTangNano9Kへ転送したりOLEDや操作スイッチのUI部分を担当したりするのみとなりました。現状、MGSPICO3zはMGSPICO3の機能を完全に移植できていません（TGFファイル、VGMファイルの再生はできません）。
+MGSPICO3zではTangNano9K内に、Z80 CPU(TV80)を実装しMGSDRVとKINROU5による演奏を行うようになりました。RaspberryPiPico2側はSDカードから楽曲ファイルをTangNano9Kへ転送したりOLEDや操作スイッチのUI部分を担当したりするのみとなりました。現状、MGSPICO3zはMGSPICO3の機能を完全に移植できていません（TGFファイル、VGMファイルの再生はできません）。v3.2.0より、NDPの再生にも対応しました。
 
 ## 使い方
 ### 用意するもの
@@ -14,6 +14,8 @@ MGSPICO3zではTangNano9K内に、Z80 CPU(TV80)を実装しMGSDRVとKINROU5に�
 - MGS楽曲データファイル（.MGSファイル）
 - [KINROU5.DRV(Ver2.00)](https://sakuramail.net/fswold/music.html#muskin)
 - MuSICA楽曲データファイル（.BGMファイル）
+- [NDP.BIN(Ver1.03)](https://ndp.squares.net/web/)
+- NDP楽曲データファイル（.NDPファイル）
 - microSD カード
 - DC5V電源(センタープラス 2.1mm DCプラグ）
 
@@ -54,13 +56,17 @@ MGSPICO3zではTangNano9K内に、Z80 CPU(TV80)を実装しMGSDRVとKINROU5に�
 - TV80 Copyright (c) 2004 Guy Hutchison. https://github.com/hutch31/tv80
 
 ### 起動時に読み込んで使用しているソフトウェア
-- MGSDRV (C) Ain./Gigamix https://gigamix.jp/mgsdrv/
+- MGSDRV
+(C) Ain./Gigamix https://gigamix.jp/mgsdrv/
 - 勤労５号（MuSICA互換ドライバ）
 (C) 1996,1997 Keiichi Kuroda / BTO(MuSICA Laboratory) All rights reserved. https://sakuramail.net/fswold/music.html#muskin
+- NDP (PSG Driver for MSX)
+Programmed by naruto2413 https://ndp.squares.net/web/
 
 ## 修正履歴
 |date|firmware|note|
 |:--|:--|:--|
+|2025/05/25|mgspico3z_firmware_v3.2.0|●機能追加:<br>音源ドライバ NDPに対応しました。NDP楽曲データファイルは.NDP拡張子をつけてください|
 |2025/03/26|mgspico3z_firmware_v3.1.0|●機能追加:<br>TV80のクロックを3.58MHzと7.16MHzの二つから選べるようにしました。（[●]ボタンを押しながら電源ONでセッティング画面が起動します。セッティング画面から抜けるには[●]ボタンを長押しします。）<br>●bugfix:<br>演奏が終了し次の曲を再生するときまれに再生しないことがある不具合を修正しました。|
 |2025/03/02|mgspico3z_firmware_v3.00|初版|
 
