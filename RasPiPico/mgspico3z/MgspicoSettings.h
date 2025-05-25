@@ -9,11 +9,11 @@ public:
 	{
 		const char *pName;
 		const int num;
-		const char *pChoices[4];
+		const char *pChoices[5];
 	};
 	const static int NUM_MENUITEMS = 5;
 	enum class RPxxxxCLOCK : uint8_t {CLK125MHZ, CLK240MHZ};
-	enum class MUSICDATA : uint8_t	{MGS=0, KIN5=1, TGF=2, VGM=3};
+	enum class MUSICDATA : uint8_t	{MGS=0, KIN5=1, TGF=2, VGM=3, NDP=4};
 	enum class SCCMODULE : uint8_t {IKASCC=0, HRASCC=1};
 	enum class HARZ80CLOCK : uint8_t {HARZ3M58HZ=0, HARZ7M16HZ=1};
 

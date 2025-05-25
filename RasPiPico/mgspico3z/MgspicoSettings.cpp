@@ -16,8 +16,7 @@ MgspicoSettings::~MgspicoSettings()
 
 void MgspicoSettings::setDefault(SETTINGDATA *p)
 {
-//	p->MusicType = MUSICDATA::MGS;
-	p->MusicType = MUSICDATA::KIN5;
+	p->MusicType = MUSICDATA::MGS;
 	p->RpCpuClock = RPxxxxCLOCK::CLK125MHZ;
 	p->AutoRun = 0;
 	p->RandomPlay = 0;
@@ -38,12 +37,12 @@ const MgspicoSettings::ITEM *MgspicoSettings::GetItem(const int indexItem) const
 {
 	static const ITEM items[] = 
 	{
-		{"music",		2,	{"MGS", "MuSICA", "TGF", "VGM", }	},	// MuSICA(byKINROU5)
-		{"auto run",	2,	{"OFF", "ON", }						},
-		{"random",		2,	{"OFF", "ON", }						},
-		{"use.SCC",		1,	{"IKASCC", "WTS", }					},
-		{"harz clk",	2,	{"3.58MHz", "7.16MHz", }			},
-	//	{"clock",		2,	{"125MHz", "240MHz", }				},
+		{"music",		5,	{"MGS", "MuSICA", "none1", "none2", "NDP", }	},
+		{"auto run",	2,	{"OFF", "ON", }									},
+		{"random",		2,	{"OFF", "ON", }									},
+		{"use.SCC",		1,	{"IKASCC", "WTS", }								},
+		{"harz clk",	2,	{"3.58MHz", "7.16MHz", }						},
+	//	{"clock",		2,	{"125MHz", "240MHz", }							},
 	};
 	return &items[indexItem];
 }

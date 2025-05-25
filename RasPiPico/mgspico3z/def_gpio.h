@@ -43,5 +43,8 @@
 // LED on Pico.
 #define	GPIO_PICO_LED			25
 
-
+// UART for stdio
+#define PICO_UART1_DEV			uart1
+#define PICO_UART1_TX			4
+#define PICO_UART1_RX			5
 

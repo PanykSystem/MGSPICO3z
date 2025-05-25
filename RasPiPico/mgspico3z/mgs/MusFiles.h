@@ -1,5 +1,7 @@
 ﻿#pragma once
 
+#include "MgspicoSettings.h"
+
 // ファイル名の文字長
 static const int LEN_FILE_SPEC = 8;
 static const int LEN_FILE_EXT = 3;
@@ -15,6 +17,7 @@ public:
 
 private:
 	static const int MAX_FILES = 1000;
+	MgspicoSettings::MUSICDATA	m_Type;
 	int m_NumFiles;
 	FILESPEC m_Files[MAX_FILES];
 
@@ -30,4 +33,6 @@ public:
 	int GetNumFiles() const;
 	bool IsEmpty() const;
 	const FILESPEC *GetFileSpec(const int no) const;
+	void SetMusicType(const MgspicoSettings::MUSICDATA type);
+	MgspicoSettings::MUSICDATA GetMusicType() const;
 };

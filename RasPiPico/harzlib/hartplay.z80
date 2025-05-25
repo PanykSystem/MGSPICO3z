@@ -2,6 +2,14 @@
 ;@title Sound driver contoller 
 ;@auther Harumakkin
 
+
+MUSTYPE:
+	.MGS		equ	0x00
+	.KINR5		equ	0x01
+	.TGF		equ	0x02
+	.VGM		equ	0x03
+	.NDP		equ	0x04
+
 HARZIO:
 	.LED6		equ	0x00	;; bit0-5 = TangNano9K On board LED, biton -> turn-on
 	.CNT100US	equ	0x01	;; counter, update per 100us. stops at 255, resets to 0 on write.
@@ -17,6 +25,7 @@ CCMD:
 
 ; MGSDRV's sub-routines
 MGS:
+	.MUSDATA	equ 0x8000	;; 楽曲データの位置アドレス
 	.SYSCK		equ	0x6010	;; 音源の有無を調べ初期化する
 	.INITM 		equ	0x6013	;; 演奏を止めてドライバを初期化する
 	.PLYST 		equ	0x6016	;; 演奏を開始する
@@ -25,6 +34,7 @@ MGS:
 	.DATCK		equ	0x6028	;; 演奏データのヘッダを調べる
 ; Kinrou5(MUSICA)'s sub-routines
 KINR5:
+	.MUSDATA	equ 0x8000	;; 楽曲データの位置アドレス
 	.FMSLT		equ	0x6010	;; FM音源のスロット番号。無い場合は０
 	.SCCSLT		equ	0x6011	;; SCC音源のスロット番号。無い場合は０
 	.INITAL		equ	0x6020	;; 音源の有無を調べ初期化する
@@ -34,7 +44,43 @@ KINR5:
 	.PLYCHK		equ	0x6032	;; 演奏状態を得る
 	.ALLMVO		equ	0x6038	;; マスタボリウムのセット(A=0が最大)
 	.GETWORK	equ 0x6044	;; ワークエリアのアドレスを返す
-
+; NDP's sub-routines
+NDP:
+	.MUSDATA	equ 0x4600	;; 楽曲データの位置アドレス
+	; API
+	.NDPINI		equ 0xC000	;; ドライバ初期化 (タイマ割り込みフックにドライバを接続)
+	.MSTART		equ 0xC003	;; 演奏開始 (ワークエリアをゼロクリアし演奏開始。フックは操作しない)
+	.MSTOP		equ 0xC006	;;  演奏停止 (演奏停止してPSGレジスタを初期化。フックは操作しない)
+	.INTRPT		equ 0xC009	;; 割り込み処理 (フックに接続せずに自前で割り込みルーチンを呼ぶ際に使用)
+	.U_ADR		equ 0xC00C	;;  (※)曲データ開始アドレス設定 (引数で指定。デフォルトの04000Hなら設定不要)
+	.U_OFF1		equ 0xC00F	;; (※)Ch.A 一時ミュート (ミュートするフレーム数を引数で指定 [2～254/1=解除/255=常時ミュート])
+	.U_OFF2		equ 0xC012	;; (※)Ch.B 〃
+	.U_OFF3		equ 0xC015	;; (※)Ch.C 〃
+	.U_MV		equ 0xC018	;;   (※)マスター音量オフセット (引数で渡した値を音量値から減算する)
+	.U_MFO		equ 0xC01B	;;  (※)フェードアウト (引数で渡したフレーム数ずつフェードアウト)
+	.U_MFI		equ 0xC01E	;;  (※)フェードインしながら演奏開始 (引数で渡したフレーム数ずつフェードイン)
+	.U_SE		equ 0xC021	;;   (※)効果音発音 (効果音データのアドレスを引数で指定)
+	.CH1OFF		equ 0xC024	;; Ch.A 一時ミュート (D←ミュートするフレーム数 [2～254/1=解除/255=常時ミュート])
+	.CH2OFF		equ 0xC027	;; Ch.B 〃
+	.CH3OFF		equ 0xC02A	;; Ch.C 〃
+	.MVSET		equ 0xC02D	;;  マスター音量オフセット (A←音量値から減算する値)
+	.MFOSET		equ 0xC030	;; フェードアウト (A←各段階のフレーム数)
+	.RDSTAT		equ 0xC033	;; 演奏状態→A (0:停止中 1:演奏中)
+	.RDENDT		equ 0xC036	;; 各トラックの演奏が終端まで達したかどうか→A (0000321Rのビットフィールド)
+	.RDLOOP		equ 0xC039	;; 曲がループした回数→A (曲データの+0BHを見て無限ループしない曲なら演奏終了時に255が返る)
+	.ADRSET		equ 0xC03C	;; 曲データ開始アドレス設定 (DE←アドレス。デフォルトの04000Hなら設定不要) 
+	.MPLAYF		equ 0xC03F	;; フェードインしながら演奏開始 (A←各段階のフレーム数)
+	.SEPLAY		equ 0xC042	;; 効果音発音 (DE←効果音データのアドレス)
+	.VSET		equ 0xC045	;;   音色データをドライバに反映 (HL←音色定義データのアドレス)
+	.SYSVER		equ 0xC048	;; ドライバのバージョン番号→HL (L=小数点以下、H=整数部。整数部が0なら0.9として扱う)
+	.NDPOFF		equ 0xC04B	;; ドライバ終了 (タイマ割り込みフックからドライバを切り離して発音停止)
+	.SETHF		equ 0xC04E	;;  タイマ割り込みフック接続フラグ←A
+	.KSSPLY		equ 0xC051	;; 退避したH.TIMIをRETで潰して演奏開始 (KSSプレイヤー用)
+	; workarea
+	.TRACK_A	equ .NDPINI + 28*3 + 61*1 + 31
+	.TRACK_B	equ .NDPINI + 28*3 + 61*2 + 31
+	.TRACK_C	equ .NDPINI + 28*3 + 61*3 + 31
+	.TRACK_RTH	equ .NDPINI + 28*3 + 61*0 + 4
 
 ;----------------------------------------------------------------------------
 org 0x4000
@@ -42,7 +88,15 @@ SNDCTRL:
 		ld		A, (WORKIF.driver_select)
 		or		A
 		jp		z, MGS_PLAYER
-		jp		KINROU5_PLAYER
+		dec		A
+		jp		z, KINR5_PLAYER
+		dec		A
+		jr		z, SNDCTRL		; TGF
+		dec		A
+		jr		z, SNDCTRL		; VGM
+		dec		A
+		jp		z, NDP_PLAYER
+		jr		SNDCTRL
 
 ;----------------------------------------------------------------------------
 org 0x4020
@@ -196,14 +250,14 @@ MGS_ACTCMD:
 	.play	
 		dec		A
 		jr		nz, .stop
-		ld		HL, 0x8000
+		ld		HL, MGS.MUSDATA
 		call	MGS.DATCK		; MGSデータをチェックして内容が正しくない場合はLEDを点灯して停止する
 		jr		z, .@1
 		call	LED5N
 		halt					; 停止
 	.@1
 		call	MGS_VOLUME_MAX
-		ld		DE, 0x8000		; 演奏データのアドレス
+		ld		DE, MGS.MUSDATA	; 演奏データのアドレス
 		ld		B, 0xff
 		ld		HL, 0xffff
 		call	MGS.PLYST
@@ -334,7 +388,7 @@ MGS_MAKEINFO:
 		ld		A, (IX+3)	
 		out		(C), A
 		; type
-		xor		A								; 0=MGS
+		ld		A, MUSTYPE.MGS					; ドライバタイプ
 		out		(C), A
 		;
 		ld		IX, (MGS_SYSINFO.ptr_mib)
@@ -370,7 +424,7 @@ MGS_MAKEINFO:
 ;----------------------------------------------------------------------------
 ; KINROU5(MuSICA)
 ;----------------------------------------------------------------------------
-KINROU5_PLAYER:
+KINR5_PLAYER:
 	.begin
 		call	LED2N
 		call	CCMDCNT_RESET
@@ -392,8 +446,7 @@ KINR5_INITSYS:
 		ld		(KINR5_SYSINFO.ptr_tracks), IX
 		ld		(KINR5_SYSINFO.size_track), HL
 		xor		A
-		ld		(MGS_SYSINFO.updatecnt), A
-		call	MGS.INITM
+		ld		(KINR5_SYSINFO.updatecnt), A
 		ret
 
 KINR5_ACTCMD:
@@ -407,7 +460,7 @@ KINR5_ACTCMD:
 		dec		A
 		jr		nz, .stop
 		call	KINR5_VOLUME_MAX
-		ld		IX, 0x8000
+		ld		IX, KINR5.MUSDATA
 		ld		E, (IX+1)		; 開始アドレス
 		ld		D, (IX+2)
 		ld		HL, 0x8007		; 格納場所
@@ -537,7 +590,7 @@ KINR5_MAKEINFO:
 		ld		A, (IX+3)	
 		out		(C), A
 		; type
-		ld		A, 0x01							; 1 = KINROU5 (MuSICA)
+		ld		A, MUSTYPE.KINR5				; ドライバタイプ
 		out		(C), A
 		;
 		ld		IX, (KINR5.FMSLT)
@@ -571,3 +624,210 @@ KINR5_MAKEINFO:
 		;
 		out		(HARZIO.WKRAM_ED), A			; finish(don't care the value of A).
 		ret
+
+;----------------------------------------------------------------------------
+; NDP
+;----------------------------------------------------------------------------
+NDP_PLAYER:
+	.begin
+		call	LED2N
+		call	CCMDCNT_RESET
+		call	NDP_INITSYS
+	.mainloop
+		call	LIFELED
+		call	NDP_ACTCMD
+		call	NDP_ROUTINE
+		call	NDP_FADEOUT
+		call	NDP_UPDATE_PLAYTIME
+		call	NDP_MAKEINFO
+		call	WAITVSYNC
+		jr		.mainloop
+
+NDP_INITSYS:
+	.bein
+		;call	NDP.NDPINI					; NDPINI 必要なし
+		xor		A
+		ld		(NDP_SYSINFO.updatecnt), A
+		ret
+
+NDP_ACTCMD:
+	.begin
+		in		A, (HARZIO.CCMD_RD)
+		or		A
+	;case CCMD.NONE
+		ret		z
+	;case CCMD.PLAY
+	.play	
+		dec		A
+		jr		nz, .stop
+		ld		DE, NDP.MUSDATA		; 曲データ先頭アドレスをセット
+		call	NDP.ADRSET
+		call	NDP_VOLUME_MAX
+		call	NDP.MSTART
+		call	PLAYTIME_RESET		; 再生タイム値をリセット
+		ld		A, 0x01
+		ld		(NDP_SYSINFO.playsts), A
+		call	CCMDCNT_INC
+		ret
+	;case CCMD.STOP
+	.stop
+		dec		A
+		jr		nz, .fadeout
+		call	NDP_VOLUME_MIN
+		call	NDP.MSTOP
+		call	PLAYTIME_RESET	; 再生タイム値をリセット
+		xor		A
+		ld		(NDP_SYSINFO.playsts), A
+		call	CCMDCNT_INC
+		ret
+	;case CCMD.FADEOUT
+	.fadeout
+		dec		A
+		ret		nz
+		ld		A, (NDP_SYSINFO.playsts)
+		cp		0x01
+		ret		nz
+		ld		A, 0x02						; Start fadeout.
+		ld		(NDP_SYSINFO.playsts), A
+		xor		A
+		ld		(NDP_WORK.fo_volume), A
+		ld		(NDP_WORK.fo_step), A
+		call	CCMDCNT_INC
+		ret
+
+NDP_ROUTINE:
+	.begin
+		ld		A, (NDP_SYSINFO.playsts)
+		or		A
+		call	nz, NDP.INTRPT
+		ret
+
+NDP_UPDATE_PLAYTIME:
+	.begin
+		ld		A, (NDP_SYSINFO.playsts)
+		or		A
+		ret		z
+		call	PLAYTIME_INC
+		ret
+
+NDP_FADEOUT:
+	.begin
+		ld		A, (NDP_SYSINFO.playsts)
+		cp		0x02
+		ret		nz
+		ld		A, (NDP_WORK.fo_step)
+		inc		A
+		ld		(NDP_WORK.fo_step), A
+		cp		17				; 1/60 * 17 = 0.27sec, 0.27*15 = 4secフェード
+		ret		nz
+		xor		A
+		ld		(NDP_WORK.fo_step), A
+		ld		A, (NDP_WORK.fo_volume)
+		inc		A
+		call	NDP_SET_VOLUME
+		;
+		ld		A, (NDP_WORK.fo_volume)
+		cp		15
+		jr		nz, .finish
+		call	NDP.MSTOP
+		xor		A
+		ld		(NDP_SYSINFO.playsts), A
+	.finish
+		ret
+
+NDP_VOLUME_MIN:
+	.begin
+		ld		A, 15	; 最小音量
+		jr		NDP_SET_VOLUME
+
+NDP_VOLUME_MAX:
+	.begin
+		ld		A, 0	; 最大音量
+		jr		NDP_SET_VOLUME
+
+NDP_SET_VOLUME:
+	.begin
+		ld		(NDP_WORK.fo_volume), A
+		call	NDP.MVSET
+		ret
+
+NDP_SYSINFO:
+	.updatecnt	DB	0x00
+	.playsts	DB	0x00		; 0x00=stop, 0x01=play, 0x02=fadeout
+NDP_WORK:
+	.fo_volume	DB	0x00
+	.fo_step	DB	0x00
+
+NDP_MAKEINFO:
+	.begin
+		ld		C, HARZIO.WKRAM_WR
+		;
+		; update_counter
+		ld		A, (NDP_SYSINFO.updatecnt)
+		out		(C), A
+		inc		A
+		ld		(NDP_SYSINFO.updatecnt), A
+		; ccmd_cnt
+		ld		A, (CCMDCNT)
+		out		(C), A
+		; loop_time
+		in		A, (HARZIO.CNT100US)
+		out		(C), A
+		; play tyme
+		ld		IX, PLAYTIME.playtyme
+		ld		A, (IX+0)	
+		out		(C), A
+		ld		A, (IX+1)	
+		out		(C), A
+		ld		A, (IX+2)	
+		out		(C), A
+		ld		A, (IX+3)	
+		out		(C), A
+		; type
+		ld		A, MUSTYPE.NDP					; ドライバタイプ
+		out		(C), A
+		;
+		xor		A								
+		out		(C), A							; FM_SLT
+		out		(C), A							; SCC_SLT
+		ld		A, 17							; MAXCHN  17固定?
+		out		(C), A
+		call	NDP.RDLOOP
+		out		(C), A							; LOOPCT
+		call	NDP.RDSTAT
+		out		(C), A							; PLAYFG
+		;
+		ld		A, (NDP.TRACK_A)
+		out		(C), A
+		xor		A
+		out		(C), A
+
+		ld		A, (NDP.TRACK_B)
+		out		(C), A
+		xor		A
+		out		(C), A
+
+		ld		A, (NDP.TRACK_C)
+		out		(C), A
+		xor		A
+		out		(C), A
+
+		ld		A, (NDP.TRACK_RTH)
+		out		(C), A
+		xor		A
+		out		(C), A
+
+		;
+		ld		B, 17-4
+		xor		A
+	.@1
+		out		(C), A
+		out		(C), A
+		djnz	.@1
+		;
+		out		(HARZIO.WKRAM_ED), A			; finish(don't care the value of A).
+		ret
+
+
+
+

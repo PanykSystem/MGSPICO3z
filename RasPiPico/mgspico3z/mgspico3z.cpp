@@ -12,6 +12,9 @@
 //#include <hardware/clocks.h>	 // set_sys_clock_khz()
 #include <pico/rand.h> 
 
+// for USB host
+#include "tusb.h"
+#include "bsp/board_api.h"
 
 #ifdef FOR_DEBUG
 #include <hardware/clocks.h>
@@ -32,12 +35,19 @@
 
 // -----------------------------------------------------------------------------
 // VERSION
-static const char *pFIRMVERSION = "v3.1.0";
+static const char *pFIRMVERSION = "v3.2.0";
 
 // -----------------------------------------------------------------------------
 static char tempWorkPath[255+1];
 static const int  Z80_PAGE_SIZE = 16*1024;
 static uint8_t g_WorkRam[Z80_PAGE_SIZE];
+
+// -----------------------------------------------------------------------------
+const uint32_t	ADDR_PLAYER 	= 0x4000;	// player
+const uint32_t	ADDR_DRIVER 	= 0x6000;	// ドライバー(NDP以外)
+const uint32_t	ADDR_DRIVER_NDP	= 0xC000;	// ドライバー(NDP)
+const uint32_t	ADDR_MUSDT		= 0x8000;	// 楽曲データ(NDP以外)
+const uint32_t	ADDR_MUSDT_NDP	= 0x4600;	// 楽曲データ(NDP)
 
 // -----------------------------------------------------------------------------
 struct INDICATOR
@@ -90,10 +100,12 @@ struct MGSPICOWORKS
 {
 	bool bReadErrMGSDRV;
 	bool bReadErrKINROU5;
+	bool bReadErrNDP;
 	MGSPICOWORKS()
 	{
 		bReadErrMGSDRV = false;
 		bReadErrKINROU5 = false;
+		bReadErrNDP = false;
 		return;
 	}
 };
@@ -182,7 +194,7 @@ static void uploadHarzBios(CHarz80Ctrl &harz)
 
 static void uploadPlayer(CHarz80Ctrl &harz)
 {
-	const uint32_t topAddr = 0x4000;
+	const uint32_t topAddr = ADDR_PLAYER;
 	const uint8_t *pStart = _binary_hartplay_bin_start;
 	const uint8_t *pEnd = _binary_hartplay_bin_end;
 	const int SZ = (int)pEnd - (int)pStart;
@@ -212,7 +224,7 @@ static bool uploadMGSDRV(CHarz80Ctrl &harz)
 		const uint8_t *pBody;
 		uint16_t bodySize;
 		if( t_Mgs_GetPtrBodyAndSize(reinterpret_cast<const STR_MGSDRVCOM*>(p), &pBody, &bodySize) ) {
-			const uint32_t topAddr = 0x6000;
+			const uint32_t topAddr = ADDR_DRIVER;
 			for( int t = 0; t < (int)bodySize; ++t) {
 				uint32_t addr = (uint32_t)(topAddr + t);
 				uint8_t op = pBody[t];
@@ -241,7 +253,7 @@ static bool uploadKINROU5(CHarz80Ctrl &harz)
 #endif
 		const uint8_t *pBody = &p[7];
 		uint16_t bodySize = readSize-7;
-		const uint32_t topAddr = 0x6000;
+		const uint32_t topAddr = ADDR_DRIVER;
 		for( int t = 0; t < (int)bodySize; ++t) {
 			uint32_t addr = (uint32_t)(topAddr + t);
 			uint8_t op = pBody[t];
@@ -252,6 +264,33 @@ static bool uploadKINROU5(CHarz80Ctrl &harz)
 	return false;
 }
 
+static bool uploadNDP(CHarz80Ctrl &harz)
+{
+	uint8_t *p = g_WorkRam;
+	sprintf(tempWorkPath, "%s", pFN_NDP);
+	UINT readSize = 0;
+	if(!sd_fatReadFileFrom(tempWorkPath, Z80_PAGE_SIZE, p, &readSize) ) {
+#ifdef FOR_DEBUG
+		printf( "Not found %s\n", tempWorkPath);
+#endif
+		return false;
+	}
+	else {
+#ifdef FOR_DEBUG
+		printf( "found %s(%d bytes)\n", tempWorkPath, readSize);
+#endif
+		const uint8_t *pBody = &p[7];
+		uint16_t bodySize = readSize-7;
+		const uint32_t topAddr = ADDR_DRIVER_NDP;
+		for( int t = 0; t < (int)bodySize; ++t) {
+			uint32_t addr = (uint32_t)(topAddr + t);
+			uint8_t op = pBody[t];
+			harz.WriteMem1(addr, op);
+		}
+		return true;
+	}
+	return false;
+}
 
 static bool uploadMusicFileData(CHarz80Ctrl &harz, const MusFiles &files, const int fileNo)
 {
@@ -265,11 +304,22 @@ static bool uploadMusicFileData(CHarz80Ctrl &harz, const MusFiles &files, const 
 	}
 	else {
 		printf( "found %s(%d bytes)\n", tempWorkPath, readSize);
-		const uint32_t topAddr = 0x8000;
-		for( int t = 0; t < (int)readSize; ++t) {
-			uint32_t addr = (uint32_t)(topAddr + t);
-			uint8_t op = p[t];
-			harz.WriteMem1(addr, op);
+		if( files.GetMusicType() == MgspicoSettings::MUSICDATA::NDP ) {
+			const uint32_t topAddr = ADDR_MUSDT_NDP;
+			for( int t = 0; t < (int)readSize-7; ++t) {
+				uint32_t addr = (uint32_t)(topAddr + t);
+				uint8_t op = p[t+7];
+				harz.WriteMem1(addr, op);
+			}
+		}
+		else
+		{
+			const uint32_t topAddr = ADDR_MUSDT;
+			for( int t = 0; t < (int)readSize; ++t) {
+				uint32_t addr = (uint32_t)(topAddr + t);
+				uint8_t op = p[t];
+				harz.WriteMem1(addr, op);
+			}
 		}
 		return true;
 	}
@@ -305,14 +355,24 @@ static void setupHarz(CHarz80Ctrl harz, const MgspicoSettings stt)
 	harz.WriteMem1(0x0200+0, 0x01);				// 0=Z80, 1=R800+ROM, 2=R800+DRAM
 	//
 	uploadPlayer(harz);	
-	harz.WriteMem1(0x4020, (uint8_t)stt.GetMusicType());	// 0x00=use MGSDRV、0x01=use KINROU5
+	// 0x00=use MGSDRV、0x01=use KINROU5、0x04= use NDP
+	harz.WriteMem1(0x4020, (uint8_t)stt.GetMusicType());
 
-	// MGSDRV/KINROU5のUpload
-	if( stt.GetMusicType() == MgspicoSettings::MUSICDATA::MGS )
-		g_Works.bReadErrMGSDRV = !uploadMGSDRV(harz);
-	else
-		g_Works.bReadErrKINROU5 = !uploadKINROU5(harz);
-
+	// Sound driver の upload
+	switch(stt.GetMusicType())
+	{
+		case MgspicoSettings::MUSICDATA::MGS:
+			g_Works.bReadErrMGSDRV = !uploadMGSDRV(harz);
+			break;
+		case MgspicoSettings::MUSICDATA::KIN5:
+			g_Works.bReadErrKINROU5 = !uploadKINROU5(harz);
+			break;
+		case MgspicoSettings::MUSICDATA::NDP:
+			g_Works.bReadErrNDP = !uploadNDP(harz);
+			break;
+		default:
+			break;
+	}
 	// 実行開始
 	harz.ResetCpu();
 
@@ -327,9 +387,9 @@ static void dislplayTitle(CSsd1306I2c &disp, const MgspicoSettings::MUSICDATA mu
 	disp.Strings8x16(3*8+0, 0*16, "MGSPICO 3z", true);
 	disp.Strings8x16(8*8+0, 1*16, pFIRMVERSION, true);
 	disp.Strings8x16(1*8+0, 2*16, "by harumakkin", false);
-	// const char *pForDrv[] = {"for MGS", "for MuSICA", "for TGF", "for VGM"};
+	// const char *pForDrv[] = {"for MGS", "for MuSICA", "for TGF", "for VGM", "for NDP"};
 	// disp.Strings8x16(1*8+0, 3*16, pForDrv[(int)musType], false);
-	disp.Strings8x16(1*8+0, 3*16, "  MGS, MuSICA", false);
+	disp.Strings8x16(1*8+0, 3*16, "MGS,MuSICA,NDP", false);
 	disp.Present();
 	return;
 }
@@ -343,8 +403,17 @@ static void init()
 	setupGpio(g_CartridgeMode_GpioTable);
 
 #ifdef FOR_DEBUG
-	stdio_init_all();
-	busy_wait_ms(1500);	// for first call printf.
+    // UART1の初期化
+	// stdio_init_all(); は、UART0を使用するときに呼び出す。
+	// UART1 の場合はstdio_uart_init_fullを使用し、使用GPIOピンも指定する
+	// また、CMakeLists.txt 内で、pico_enable_stdio_uart(${BinName} 1) を記述すること
+	stdio_uart_init_full(
+		PICO_UART1_DEV, CFG_BOARD_UART_BAUDRATE, PICO_UART1_TX, PICO_UART1_RX);
+	// for first call printf.
+	busy_wait_ms(1500);
+#endif
+
+#ifdef FOR_DEBUG
 	printf("MGSPICO3z by harumakkin. 2025 -------------- \n");
 #endif
 
@@ -357,16 +426,32 @@ static void init()
 
 	// setup for filesystem
 	disk_initialize(0);
+
+	// setup for TinyUSB
+	tuh_init(BOARD_TUH_RHPORT);
+	if( board_init_after_tusb) {
+		board_init_after_tusb();
+	}
+
 	return;
 }
 
-static void listupMusicFiles(MusFiles *pFiles, const MgspicoSettings::MUSICDATA musicType)
+static void listupMusicFiles(MusFiles *pFiles)
 {
-	//
-	if( musicType == MgspicoSettings::MUSICDATA::MGS )
-		pFiles->ReadFileNames("*.MGS");
-	else
-		pFiles->ReadFileNames("*.BGM");
+	switch(pFiles->GetMusicType())
+	{
+		case MgspicoSettings::MUSICDATA::MGS:
+			pFiles->ReadFileNames("*.MGS");
+			break;
+		case MgspicoSettings::MUSICDATA::KIN5:
+			pFiles->ReadFileNames("*.BGM");
+			break;
+		case MgspicoSettings::MUSICDATA::NDP:
+			pFiles->ReadFileNames("*.NDP");
+			break;
+		default:
+			break;
+	}
 	return;
 }
 
@@ -388,6 +473,7 @@ enum EVENT_TYPE
 {
 	EVENT_NONE,
 	EVENT_KEY,						// KEY-SWの押下／解放
+	EVENT_KB_INPUT,					// USBキーボード
 	EVENT_LOOPCT,					// 演奏ループ回数
 	EVENT_ENDMUSIC,					// 演奏が終了した
 	EVENT_REQ_FLIST_DOWN_CURSOR,	// ファイルリスト画面のカーソルを一行下へ移動するよう指示された
@@ -615,7 +701,7 @@ static bool downloadStatus(CHarz80Ctrl &harz, harz80::WRWKRAM *pWk)
 	if( oldCnt != pWk->update_counter )	{
 		oldCnt = pWk->update_counter;
 		bUpdate = true;
-#ifdef FOR_DEBUG
+#ifdef FOR_DEBUG_PRINT_STATUS
 		static uint16_t index = 0;
 		if( 160 < pWk->loop_time )
 			printf("%05d %03d %03d +lt:%-3d pt:%-3d ", ++index, oldCnt, pWk->ccmd_cnt, pWk->loop_time, pWk->play_time*166/10000);
@@ -639,10 +725,13 @@ static bool makeSoundIndicator(
 	for( int trk = 0; trk < num_trks; ++trk ) { 
 		int16_t cnt = 0;
 		if( musicType == MgspicoSettings::MUSICDATA::MGS ) {
-			cnt = wk.info.mgs.GATETIME[trk];	// PSGx3,SCCx5,FMx9 の順のまま採用
+			cnt = wk.info.mgs.GATETIME[trk];					// PSGx3,SCCx5,FMx9 の順のまま採用
 		}
 		else if( musicType == MgspicoSettings::MUSICDATA::KIN5 ) {
-			cnt = wk.info.mgs.GATETIME[(trk+9)%num_trks];	// FMx9,PSGx3,SCCx5を、PSGx3,SCCx5,FMx9 の順になるように読みだす
+			cnt = wk.info.mgs.GATETIME[(trk+9)%num_trks];		// FMx9,PSGx3,SCCx5を、PSGx3,SCCx5,FMx9 の順になるように読みだす
+		}
+		else if( musicType == MgspicoSettings::MUSICDATA::NDP ) {
+			cnt = (trk < 4) ? wk.info.mgs.GATETIME[trk] : 0;	// PSGx3,RHx1
 		}
 		INDICATOR::TRACK &tk = pIndi->tk[trk];
 		auto oldLvl = tk.DispLvl;
@@ -664,10 +753,14 @@ static bool makeSoundIndicator(
 	return bUpdated;
 }
 
-static bool drawSoundIndicator(CSsd1306I2c &disp, INDICATOR *p, bool bForce)
+static bool drawSoundIndicator(
+	CSsd1306I2c &disp, INDICATOR *p, bool bForce,
+	MgspicoSettings::MUSICDATA musicType)
 {
+	const int numTracks =
+		(musicType==MgspicoSettings::MUSICDATA::NDP) ? 4 : p->NUM_TRACKS;
 	bool bDrew = false;
-	for( int trk = 0; trk < p->NUM_TRACKS; ++trk ) { 
+	for( int trk = 0; trk < numTracks; ++trk ) { 
 		INDICATOR::TRACK &tk = p->tk[trk];
 		int offsetX = 0;
 		if( 8 <= trk )		// SCCとFMの隙間
@@ -685,8 +778,17 @@ static bool drawSoundIndicator(CSsd1306I2c &disp, INDICATOR *p, bool bForce)
 			disp.Line(x, y, x+p->BAR_W, y, true);
 			bDrew = true;
 		}
-		disp.Line(0, p->HEIGHT+2, 0+p->FLAME_W*3-2, p->HEIGHT+2, true);
+	}
+	// PSG3 トラックの下線
+	disp.Line(0, p->HEIGHT+2, 0+p->FLAME_W*3-2, p->HEIGHT+2, true);
+	if( musicType==MgspicoSettings::MUSICDATA::NDP ){
+		// NDP リズム トラックの下線
+		disp.Line(p->FLAME_W*3+3, p->HEIGHT+2, 0+p->FLAME_W*3+3+p->FLAME_W*1-2, p->HEIGHT+2, true);
+	}
+	else{
+		// SCC トラックの下線
 		disp.Line(p->FLAME_W*3+3, p->HEIGHT+2, 0+p->FLAME_W*3+3+p->FLAME_W*5-2, p->HEIGHT+2, true);
+		// FM トラックの下線
 		disp.Line(p->FLAME_W*8+6, p->HEIGHT+2, p->FLAME_W*8+6+p->FLAME_W*9-2, p->HEIGHT+2, true);
 	}
 	return bDrew;
@@ -739,7 +841,12 @@ static void  displayFps(CSsd1306I2c &disp, const int fps)
 {
 	sprintf(tempWorkPath, "%d", fps);
 	disp.Strings8x16(4, 2*8, tempWorkPath);
-//	disp.Strings8x16(4, 0*8, tempWorkPath);
+	return;
+}
+
+inline void ledLamp(uint32_t sts)
+{
+	gpio_put(GPIO_PICO_LED, sts);
 	return;
 }
 
@@ -754,6 +861,141 @@ inline void aliveLamp()
 	return;
 }
 
+// -----------------------------------------------------------------------------------------------
+#define MAX_REPORT  4
+static struct {
+  uint8_t report_count;
+  tuh_hid_report_info_t report_info[MAX_REPORT];
+} hid_info[CFG_TUH_HID];
+
+static void process_kbd_report(const hid_keyboard_report_t *pKbRep)
+{
+	for( int t = 0; t < 6; ++t ){
+		if( pKbRep->keycode[t] ){
+			g_Events.Post(EVENT_KB_INPUT, pKbRep->keycode[t]);
+		}
+	}
+	return;
+}
+
+static void process_mouse_report(const hid_mouse_report_t *pMusRep)
+{
+	// do nothing
+	return;
+}
+
+static void process_generic_report(uint8_t dev_addr, uint8_t instance, const uint8_t *pReport, uint16_t len)
+{
+	const uint8_t rpt_count = hid_info[instance].report_count;
+	tuh_hid_report_info_t *rpt_info_arr = hid_info[instance].report_info;
+	tuh_hid_report_info_t *rpt_info = NULL;
+
+	if( rpt_count == 1 && rpt_info_arr[0].report_id == 0) {
+		// Simple report without report ID as 1st byte
+		rpt_info = &rpt_info_arr[0];
+	}
+	else {
+		// Composite report, 1st byte is report ID, data starts from 2nd byte
+		const uint8_t rpt_id = pReport[0];
+		// Find report id in the array
+		for( uint8_t i = 0; i < rpt_count; i++ ){
+			if( rpt_id == rpt_info_arr[i].report_id ){
+				rpt_info = &rpt_info_arr[i];
+				break;
+			}
+		}
+		pReport++;
+		len--;
+	}
+
+	if( !rpt_info ) {
+		//printf("Couldn't find report info !\r\n");
+		return;
+	}
+
+	// For complete list of Usage Page & Usage checkout src/class/hid/hid.h. For examples:
+	// - Keyboard                     : Desktop, Keyboard
+	// - Mouse                        : Desktop, Mouse
+	// - Gamepad                      : Desktop, Gamepad
+	// - Consumer Control (Media Key) : Consumer, Consumer Control
+	// - System Control (Power key)   : Desktop, System Control
+	// - Generic (vendor)             : 0xFFxx, xx
+	if( rpt_info->usage_page == HID_USAGE_PAGE_DESKTOP ){
+		switch( rpt_info->usage )
+		{
+			case HID_USAGE_DESKTOP_KEYBOARD:
+				// Assume keyboard follow boot report layout
+				process_kbd_report((hid_keyboard_report_t const *) pReport);
+				break;
+			case HID_USAGE_DESKTOP_MOUSE:
+				// Assume mouse follow boot report layout
+				process_mouse_report((hid_mouse_report_t const *) pReport);
+				break;
+			default:
+				break;
+		}
+	}
+	return;
+}
+
+void tuh_hid_mount_cb(uint8_t dev_addr, uint8_t instance, uint8_t const *desc_report, uint16_t desc_len)
+{
+	static int c = 0;
+	++c;
+
+	const uint8_t itf_protocol = tuh_hid_interface_protocol(dev_addr, instance);
+#ifdef FOR_DEBUG
+	printf("tuh_hid_mount_cb(), dev_addr=%d, instance=%d\n", dev_addr, instance);
+	printf("  itf_protocol %d\n", itf_protocol);
+#endif
+	if( itf_protocol == HID_ITF_PROTOCOL_NONE) {
+		hid_info[instance].report_count =
+			tuh_hid_parse_report_descriptor(
+				hid_info[instance].report_info, MAX_REPORT, desc_report, desc_len);
+#ifdef FOR_DEBUG
+		printf("  hid_info[instance].report_count=%d\n", hid_info[instance].report_count);
+#endif
+	}
+	else{
+		// itf_protocol != HID_ITF_PROTOCOL_NONE のみ、tuh_hid_receive_report()を行う
+		// HID_ITF_PROTOCOL_NONEの時にtuh_hid_receive_reportを呼び出すと、
+		// 約40秒後に、"*** PANIC ***　ep 00 was already available" が起こって停止してしまう
+		tuh_hid_receive_report(dev_addr, instance);
+	}
+#ifdef FOR_DEBUG
+	printf("\n");
+#endif
+	return;
+}
+
+void tuh_hid_umount_cb(uint8_t dev_addr, uint8_t instance)
+{
+#ifdef FOR_DEBUG
+	printf("tuh_hid_mount_cb(), dev_addr=%d, instance=%d\n", dev_addr, instance);
+#endif
+	return;
+}
+
+void tuh_hid_report_received_cb(uint8_t dev_addr, uint8_t instance, const uint8_t *pReport, uint16_t len)
+{
+	uint8_t const itf_protocol = tuh_hid_interface_protocol(dev_addr, instance);
+	switch (itf_protocol)
+	{
+		case HID_ITF_PROTOCOL_KEYBOARD:
+			process_kbd_report((const hid_keyboard_report_t *)pReport);
+			break;
+		case HID_ITF_PROTOCOL_MOUSE:
+			process_mouse_report((const hid_mouse_report_t *)pReport);
+			break;
+    	default:
+			process_generic_report(dev_addr, instance, pReport, len);
+			break;
+	}
+	tuh_hid_receive_report(dev_addr, instance);
+	return;
+}
+
+// -----------------------------------------------------------------------------------------------
 static void task_sw(const uint32_t nowTime)
 {
 	static int repCnts[KEY_NUM];
@@ -792,6 +1034,12 @@ static void task_sw(const uint32_t nowTime)
 				}
 			}
 		}
+	}
+
+	// TinyUSB device task
+	static CMsCount usbTim(8);
+	if( usbTim.IsTimeOut(true) ){
+		tuh_task();
 	}
 	return;
 }
@@ -861,6 +1109,8 @@ static void dispPlayer(CSsd1306I2c &disp, CHarz80Ctrl &harz, MusFiles &files)
 		g_Events.Post(EVENT_REQ_PLAY, curNo);
 	}
 
+	ledLamp(0);
+
 	for(;;) {
 		// 動作LED
 		aliveLamp();
@@ -871,6 +1121,20 @@ static void dispPlayer(CSsd1306I2c &disp, CHarz80Ctrl &harz, MusFiles &files)
 		if( g_Events.Receive(&dt) ){
 			switch(dt.MsgType)
 			{
+				case EVENT_KB_INPUT:
+				{
+					//aliveLamp();
+					switch((uint8_t)dt.Value)
+					{
+						case 30:	g_Events.Post(EVENT_KEY, KEYSTS_PUSH, KEY_UP);		g_Events.Post(EVENT_KEY, KEYSTS_RELEASE, KEY_UP);		break;
+						case 31:	g_Events.Post(EVENT_KEY, KEYSTS_PUSH, KEY_DOWN);	g_Events.Post(EVENT_KEY, KEYSTS_RELEASE, KEY_DOWN);		break;
+						case 32:	g_Events.Post(EVENT_KEY, KEYSTS_PUSH, KEY_APPLY);	g_Events.Post(EVENT_KEY, KEYSTS_RELEASE, KEY_APPLY);	break;
+						case 33:	g_Events.Post(EVENT_KEY, KEYSTS_PUSH, KEY_DOWN);	g_Events.Post(EVENT_KEY, KEYSTS_RELEASE, KEY_DOWN);		break;
+						case 34:	g_Events.Post(EVENT_KEY, KEYSTS_PUSH, KEY_APPLY);	g_Events.Post(EVENT_KEY, KEYSTS_RELEASE, KEY_APPLY);	break;
+						case 35:	g_Events.Post(EVENT_KEY, KEYSTS_PUSH, KEY_UP);		g_Events.Post(EVENT_KEY, KEYSTS_RELEASE, KEY_UP);		break;
+					}
+					break;
+				}
 				// キー操作が行われた
 				case EVENT_KEY:
 				{
@@ -1000,7 +1264,7 @@ static void dispPlayer(CSsd1306I2c &disp, CHarz80Ctrl &harz, MusFiles &files)
 		// あるいは、一定時間、ファイルリスト画面を表示する
 		if( updDispTim.IsTimeOut(true) ){
 			disp.Clear();
-			drawSoundIndicator(disp, &g_Indi, true);
+			drawSoundIndicator(disp, &g_Indi, true, g_Setting.GetMusicType());
 
 			bool bDispList = (playNo == 0) || dispListTim.IsMidway();
 			if( bDispList ){
@@ -1191,9 +1455,10 @@ static void dispError(CSsd1306I2c &disp, MGSPICOWORKS &wk)
 		displayNotFound(disp, pFN_MGSDRV);
 	else if( g_Works.bReadErrKINROU5 )
 		displayNotFound(disp, pFN_KINROU5);
+	else if( g_Works.bReadErrNDP )
+		displayNotFound(disp, pFN_NDP);
 	return;
 }
-
 
 /**
  * エントリ
@@ -1206,7 +1471,7 @@ int main()
 
 	init();
 
-	// OLEDディスプレイの初期化
+	// OLEDディスプレイの初期化とタイトル画面の表示
 	pDisp->Setup();
 	dislplayTitle(*pDisp, g_Setting.GetMusicType());
 
@@ -1225,13 +1490,16 @@ int main()
 	pHarz->Setup();
 	setupHarz(*pHarz, g_Setting);
 
+	// 音源ドライバの種類
+	pFiles->SetMusicType(g_Setting.GetMusicType());
+
 	// 
-	if( g_Works.bReadErrMGSDRV || g_Works.bReadErrKINROU5 ){
+	if( g_Works.bReadErrMGSDRV || g_Works.bReadErrKINROU5 || g_Works.bReadErrNDP ){
 		pDisp->Setup();
 		dispError(*pDisp, g_Works);
 	}
 	else{
-		listupMusicFiles(pFiles, g_Setting.GetMusicType());
+		listupMusicFiles(pFiles);
 		pDisp->Setup();
 		dispPlayer(*pDisp, *pHarz, *pFiles);
 	}

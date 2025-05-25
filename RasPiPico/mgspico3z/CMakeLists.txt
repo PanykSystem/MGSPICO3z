@@ -39,9 +39,14 @@ target_compile_options(
 # )
 
 ## enable usb output, disable uart output
-pico_enable_stdio_usb(${BinName} 1)
-pico_enable_stdio_uart(${BinName} 0)
+pico_enable_stdio_usb(${BinName} 0)
+pico_enable_stdio_uart(${BinName} 1)
 
+target_include_directories(
+		${BinName}
+		PUBLIC
+        ${CMAKE_CURRENT_LIST_DIR})
+		
 target_link_libraries(
 	${BinName}
 	PRIVATE
@@ -49,8 +54,11 @@ target_link_libraries(
 	pico_rand
 	hardware_i2c
 	hardware_spi
-#	hardware_pio pico_multicore hardware_flash
 	harzlib
+	tinyusb_host
+	tinyusb_board
+#	hardware_pio pico_multicore hardware_flash
+#	host_cdc_msc_hid tinyusb_device
 )
 
 # create map/bin/hex/uf2 file etc.

@@ -5,6 +5,7 @@
  */
 // https://spdx.org/licenses/
 
+#include "for_debug.h"
 #include <stdint.h>
 #include <stdio.h>				// printf
 #include <memory.h>

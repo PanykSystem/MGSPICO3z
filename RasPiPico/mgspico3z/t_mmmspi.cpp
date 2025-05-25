@@ -18,10 +18,11 @@ bool Init()
 	g_ReadIndex = 0;
 	g_WriteIndex = 0;
 	//
-	uint spd = spi_init( HARZ80_SPI_DEV, (uint)6600000 ); 	
+	spi_init( HARZ80_SPI_DEV, (uint)6600000 ); 	
+//	uint spd = spi_init( HARZ80_SPI_DEV, (uint)6600000 ); 	
 //	uint spd = spi_init( HARZ80_SPI_DEV, (uint)500000 );
 	sleep_ms(1000);
-	printf("SPI speed=%d\n", spd);
+//	printf("SPI speed=%d\n", spd);
     gpio_set_function( HARZ80_SPI_PIN_TX, GPIO_FUNC_SPI );
     gpio_set_function( HARZ80_SPI_PIN_RX, GPIO_FUNC_SPI );
     gpio_set_function( HARZ80_SPI_PIN_SCK, GPIO_FUNC_SPI );
