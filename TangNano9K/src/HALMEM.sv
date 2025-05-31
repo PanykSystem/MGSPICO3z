@@ -172,6 +172,7 @@ soundbus_if		bus_Sound();
 harzbus_if		bus_Harz();
 txworkram_if	bus_TxWork();
 ccmnd_if		bus_CCmd();
+ccmnd_if		bus_CCmdData();
 reg [4:0]		masicn_IKASCC;
 
 HarzMMU u_HarzMMU
@@ -183,6 +184,7 @@ HarzMMU u_HarzMMU
 	.bus_Pamux			(bus_Pamux_sec	),
 	.bus_TxWork			(bus_TxWork		),
 	.bus_CCmd			(bus_CCmd		),
+	.bus_CCmdData		(bus_CCmdData	),
 	.bus_Sound			(bus_Sound		),
 	.i_masicn_IKASCC	(masicn_IKASCC	),
 	.o_LED				(o_LED			)
@@ -277,6 +279,7 @@ wire spirx_harz_clkmode	= (spirx_bitcnt == 7'd16 && spirx_rsv_data[15:8] == TXCM
 //
 wire spirx_harz_getsts	= (spirx_bitcnt == 7'd08 && spirx_rsv_data[7:0] == TXCMD_HARZ_GETSTS	);
 wire spirx_harz_setcmd	= (spirx_bitcnt == 7'd16 && spirx_rsv_data[15:8] == TXCMD_HARZ_SETCMD	);
+wire spirx_harz_setcmddt= (spirx_bitcnt == 7'd16 && spirx_rsv_data[15:8] == TXCMD_HARZ_SETCMDDATA);
 
 
 reg [6:0] spirx_bytecnt;
@@ -284,7 +287,7 @@ reg [5:0] spirx_tv80clk_fbdsel;		// x1 = 6'd63、x2 = 6'd62
 
 reg [8:0] counter_for_cpureset;
 
-typedef enum logic [4:0]
+typedef enum logic [5:0]
 {
 	MEMBUS_IDLE,
 	// PSRAM 
@@ -321,6 +324,10 @@ typedef enum logic [4:0]
 	MEMBUS_HARZ_SETCMD,
 	MEMBUS_HARZ_SETCMD_2,
 	MEMBUS_HARZ_SETCMD_3,
+	//
+	MEMBUS_HARZ_SETCMDDATA,
+	MEMBUS_HARZ_SETCMDDATA_2,
+	MEMBUS_HARZ_SETCMDDATA_3,
 	//
 	MEMBUS_HARZ_CLKMODE,
 	//
@@ -422,6 +429,10 @@ always @(posedge clk_SPIRX) begin
 					membus_sts <= MEMBUS_HARZ_SETCMD;
 					membus_data[7:0] <= spirx_rsv_data[7:0];
 				end
+				if( spirx_harz_setcmddt ) begin
+					membus_sts <= MEMBUS_HARZ_SETCMDDATA;
+					membus_data[7:0] <= spirx_rsv_data[7:0];
+				end
 				// -----------------------------------------------------
 				if( spirx_harz_clkmode ) begin
 					membus_sts <= MEMBUS_HARZ_CLKMODE;
@@ -484,6 +495,19 @@ always @(posedge clk_SPIRX) begin
 			end
 			MEMBUS_HARZ_SETCMD_3: begin
 				bus_CCmd.write <= `LOW;
+				membus_sts <= MEMBUS_FINISH;
+			end
+			// -----------------------
+			MEMBUS_HARZ_SETCMDDATA: begin
+				bus_CCmdData.write_data <= membus_data[7:0];
+				membus_sts <= MEMBUS_HARZ_SETCMDDATA_2;
+			end
+			MEMBUS_HARZ_SETCMDDATA_2: begin
+				bus_CCmdData.write <= `HIGH;
+				membus_sts <= MEMBUS_HARZ_SETCMDDATA_3;
+			end
+			MEMBUS_HARZ_SETCMDDATA_3: begin
+				bus_CCmdData.write <= `LOW;
 				membus_sts <= MEMBUS_FINISH;
 			end
 			// PSRAM書込み(1Byte)-----------------

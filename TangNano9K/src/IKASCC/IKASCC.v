@@ -1,3 +1,5 @@
+`include "IKASCC_defines.vh"
+
 module IKASCC #(parameter IMPL_TYPE = 0, parameter RAM_BLOCK = 1) (
     //chip clock
     input   wire            i_EMUCLK, //emulator master clock
@@ -46,20 +48,11 @@ module IKASCC #(parameter IMPL_TYPE = 0, parameter RAM_BLOCK = 1) (
     2: (async)standalone module with slow clock around 3.58MHz
 */
 
-//localparam  RAMCTRL_ASYNC = 1; //TBD
-localparam  RAMCTRL_ASYNC = 0; //TBD
+localparam  RAMCTRL_ASYNC = 1; //TBD
 localparam  RAM_ASYNC_WRITE_DELAY_CHAIN_LENGTH = 20;
 localparam  FULLY_ASYNC = (IMPL_TYPE == 2) ? 1 : 0;
 localparam  RAM_TYPE    = (IMPL_TYPE == 2) ? 0 : RAM_BLOCK;
 localparam  FAST_CLOCK  = (IMPL_TYPE == 0) ? 1 : 0;
-
-`define IKASCC_SIMULATION
-//`define IKASCC_ASYNC_VENDOR_ALTERA
-//`define IKASCC_ASYNC_VENDOR_XILINX
-//`define IKASCC_ASYNC_VENDOR_LATTICE
-//`define IKASCC_ASYNC_VENDOR_GOWIN
-
-
 
 ///////////////////////////////////////////////////////////
 //////  Clock and reset

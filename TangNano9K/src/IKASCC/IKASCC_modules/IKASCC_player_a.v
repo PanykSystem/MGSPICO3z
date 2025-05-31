@@ -1,3 +1,5 @@
+`include "IKASCC_defines.vh"
+
 module IKASCC_player_a #(
     parameter DELAY_LENGTH = 1
 ) (
@@ -30,8 +32,6 @@ wire            rst_n = i_RST_n;
 //////  Delay chain
 ////
 
-`define IKASCC_SIMULATION
-
 `ifdef IKASCC_SIMULATION
 wire [DELAY_LENGTH:0] delay;
 wire i_DELAYED_WR = delay[DELAY_LENGTH];
@@ -51,14 +51,14 @@ wire i_DELAYED_WR = delay[DELAY_LENGTH]; //TODO: how to use global buffer manual
 `elsif IKASCC_ASYNC_VENDOR_GOWIN
 wire [DELAY_LENGTH:0] delay /* synthesis syn_keep=1 */;
 wire            i_DELAYED_WR;
-BUFG u_bufg(i_DELAYED_WR, delay[DELAY_LENGTH])
+BUFG u_bufg(i_DELAYED_WR, delay[DELAY_LENGTH]);
 `endif
 
 assign  delay[0] = ~i_WR_n;
 
 genvar d;
 generate
-for(d=0; d<DELAY_LENGTH; d=d+1) begin : delay_chain
+for(d=0; d<DELAY_LENGTH; d=d+1) begin : delay_chain 
 IKASCC_primitive_buf u_dlybuf(delay[d], delay[d+1]);
 end
 endgenerate

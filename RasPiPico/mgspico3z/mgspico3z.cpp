@@ -35,7 +35,7 @@
 
 // -----------------------------------------------------------------------------
 // VERSION
-static const char *pFIRMVERSION = "v3.2.0";
+static const char *pFIRMVERSION = "v3.2.1";
 
 // -----------------------------------------------------------------------------
 static char tempWorkPath[255+1];
@@ -101,11 +101,13 @@ struct MGSPICOWORKS
 	bool bReadErrMGSDRV;
 	bool bReadErrKINROU5;
 	bool bReadErrNDP;
+	int Volume;
 	MGSPICOWORKS()
 	{
 		bReadErrMGSDRV = false;
 		bReadErrKINROU5 = false;
 		bReadErrNDP = false;
+		Volume = 15;
 		return;
 	}
 };
@@ -403,7 +405,7 @@ static void init()
 	setupGpio(g_CartridgeMode_GpioTable);
 
 #ifdef FOR_DEBUG
-    // UART1の初期化
+    // UART1の初期化方法
 	// stdio_init_all(); は、UART0を使用するときに呼び出す。
 	// UART1 の場合はstdio_uart_init_fullを使用し、使用GPIOピンも指定する
 	// また、CMakeLists.txt 内で、pico_enable_stdio_uart(${BinName} 1) を記述すること
@@ -483,6 +485,7 @@ enum EVENT_TYPE
 	EVENT_REQ_STT_DOWN_CURSOR,
 	EVENT_REQ_STT_UP_CURSOR,
 	EVENT_REQ_STT_APPLY,
+	EVENT_REQ_SET_VOLUME,				// 
 };
 
 struct EVENT_DT
@@ -693,6 +696,14 @@ static void fadeoutMusic(CHarz80Ctrl &harz)
 	return;
 }
 
+// v = 0:minimum, 15:maximum,
+static void  setVolumeMusic(CHarz80Ctrl &harz, const int v)
+{
+	harz.SetCCmdData((uint8_t)(15-v));
+	harz.SetCCmd(harz80::CCMD_VOLUME);
+	return;
+}
+
 static bool downloadStatus(CHarz80Ctrl &harz, harz80::WRWKRAM *pWk)
 {
 	static uint8_t oldCnt = 0;
@@ -820,6 +831,22 @@ static bool displayPlayTime(
 		disp.Strings8x16(0, 1*16, tempWorkPath, false);
 	}
 	return bUpdated;
+}
+
+static void displayVolume(
+	CSsd1306I2c &disp,
+	const int v )
+{
+	static int old_v = -1;
+	static char temp[1+6+1+1];		// "vol.##"
+	if( old_v != v ){
+		old_v = v;
+		sprintf(temp, " vol.%2d ", v);
+	}
+	// 画面横幅は16文字分。8文字をセンターに表示するには、
+	// CX=4の位置から表示する
+	disp.Strings8x16(8*4, 0*16, temp, true);
+	return;
 }
 
 static void drawLoadLog(CSsd1306I2c &disp, const LOOPTIMELOGWORK &timlog)
@@ -1046,7 +1073,7 @@ static void task_sw(const uint32_t nowTime)
 
 static void tasks(
 	const uint32_t nowTime, CHarz80Ctrl &harz, harz80::WRWKRAM *pWkram,
-	uint8_t oldCcmdCnt, CMsCount *pIgnoringTim)
+	CMsCount *pIgnoringTim)
 {
 	// SWの押下状態をイベントに変換する
 	task_sw(nowTime);
@@ -1056,16 +1083,17 @@ static void tasks(
 	makeSoundIndicator(nowTime, *pWkram, g_Setting.GetMusicType(), &g_Indi);
 	// 
 	if( bUpdate ){
-		// 再生回数が変化したらEVENT_LOOPCTを発報する
 		static uint8_t oldLoopCnt = 0;
-		if( oldLoopCnt != pWkram->info.mgs.LOOPCT ){
-			oldLoopCnt = pWkram->info.mgs.LOOPCT;
-			g_Events.Post(EVENT_LOOPCT, (int)pWkram->info.mgs.LOOPCT);
-		}
-		// 再生が終了したらEVENT_ENDMUSICを発報する（ただし再生開始直後から100msが経過するまでは何もしない）
+		//printf( "PLAYFG=%d\n", pWkram->info.mgs.PLAYFG);
 		if( pIgnoringTim->IsTimeOut() && pWkram->info.mgs.PLAYFG == 0 ){
+			// 再生が終了したらEVENT_ENDMUSICを発報する（ただし再生開始直後から100msが経過するまでは何もしない）
 			pIgnoringTim->Cancel();
 			g_Events.Post(EVENT_ENDMUSIC);
+		}
+		if( oldLoopCnt != pWkram->info.mgs.LOOPCT ){
+			// 再生回数が変化したらEVENT_LOOPCTを発報する
+			oldLoopCnt = pWkram->info.mgs.LOOPCT;
+			g_Events.Post(EVENT_LOOPCT, (int)pWkram->info.mgs.LOOPCT);
 		}
 		//
 		g_TimeLog.Set(pWkram->loop_time);
@@ -1091,16 +1119,16 @@ static void dispPlayer(CSsd1306I2c &disp, CHarz80Ctrl &harz, MusFiles &files)
 	int curNo = (bRandomPlay) ? getRandPlayNo(files.GetNumFiles()) : 1;
 	int frameCnt = 0;
 	int fps = 0;
-	uint8_t oldCcmdCnt = 0;
 
 	harz80::WRWKRAM wkram;
 	int playNo = 0;	
 	CMsCount updDispTim(16/*ms*/);
 	CMsCount fpsTim(1000/*ms*/);
+	CMsCount volumeDispTim;
 
 	static const uint32_t DISPLIST_TIME = 1000; // ms
 	CMsCount dispListTim;
-	static const uint32_t IGNORING_TIME = 1000; // ms
+	static const uint32_t IGNORING_TIME = 100; // ms
 	CMsCount ignoringTim;
 
 	SHIFTKEY shift = SHIFT_NONE;
@@ -1116,18 +1144,19 @@ static void dispPlayer(CSsd1306I2c &disp, CHarz80Ctrl &harz, MusFiles &files)
 		aliveLamp();
 		//
 		const uint32_t nowTime = GetTimerCounterMS();
-		tasks(nowTime, harz, &wkram, oldCcmdCnt, &ignoringTim);
+		tasks(nowTime, harz, &wkram, &ignoringTim);
 		EVENT_DT dt;
 		if( g_Events.Receive(&dt) ){
 			switch(dt.MsgType)
 			{
 				case EVENT_KB_INPUT:
 				{
-					//aliveLamp();
 					switch((uint8_t)dt.Value)
 					{
-						case 30:	g_Events.Post(EVENT_KEY, KEYSTS_PUSH, KEY_UP);		g_Events.Post(EVENT_KEY, KEYSTS_RELEASE, KEY_UP);		break;
-						case 31:	g_Events.Post(EVENT_KEY, KEYSTS_PUSH, KEY_DOWN);	g_Events.Post(EVENT_KEY, KEYSTS_RELEASE, KEY_DOWN);		break;
+						case 30:	g_Works.Volume += (g_Works.Volume<15)?1:0;		break;
+						case 31:	g_Works.Volume += (0<g_Works.Volume)?-1:0;		break;
+//						case 30:	g_Events.Post(EVENT_KEY, KEYSTS_PUSH, KEY_UP);		g_Events.Post(EVENT_KEY, KEYSTS_RELEASE, KEY_UP);		break;
+//						case 31:	g_Events.Post(EVENT_KEY, KEYSTS_PUSH, KEY_DOWN);	g_Events.Post(EVENT_KEY, KEYSTS_RELEASE, KEY_DOWN);		break;
 						case 32:	g_Events.Post(EVENT_KEY, KEYSTS_PUSH, KEY_APPLY);	g_Events.Post(EVENT_KEY, KEYSTS_RELEASE, KEY_APPLY);	break;
 						case 33:	g_Events.Post(EVENT_KEY, KEYSTS_PUSH, KEY_DOWN);	g_Events.Post(EVENT_KEY, KEYSTS_RELEASE, KEY_DOWN);		break;
 						case 34:	g_Events.Post(EVENT_KEY, KEYSTS_PUSH, KEY_APPLY);	g_Events.Post(EVENT_KEY, KEYSTS_RELEASE, KEY_APPLY);	break;
@@ -1196,14 +1225,12 @@ static void dispPlayer(CSsd1306I2c &disp, CHarz80Ctrl &harz, MusFiles &files)
 						playNo = dt.Value;
 						dispListTim.Cancel();
 					}
-					oldCcmdCnt = wkram.ccmd_cnt;
 					break;
 				}
 				// 再生停止を指示されたので停止を実行する
 				case EVENT_REQ_STOP:
 				{
 					stopMusic(harz);
-					oldCcmdCnt = wkram.ccmd_cnt;
 					playNo = 0;
 					break;
 				}
@@ -1229,7 +1256,6 @@ static void dispPlayer(CSsd1306I2c &disp, CHarz80Ctrl &harz, MusFiles &files)
 					// ２回ループしていたら、４秒フェードアウト後に演奏を停止させる
 					if( dt.Value == 2 ){
 						fadeoutMusic(harz);
-						oldCcmdCnt = wkram.ccmd_cnt;
 					}
 					break;
 				}
@@ -1250,8 +1276,13 @@ static void dispPlayer(CSsd1306I2c &disp, CHarz80Ctrl &harz, MusFiles &files)
 							curNo = playNo;
 							dispListTim.Cancel();
 						}
-						oldCcmdCnt = wkram.ccmd_cnt;
 					}
+					break;
+				}
+				case EVENT_REQ_SET_VOLUME:
+				{
+					setVolumeMusic(harz, g_Works.Volume);
+					break;
 				}
 				default:
 				{
@@ -1287,6 +1318,19 @@ static void dispPlayer(CSsd1306I2c &disp, CHarz80Ctrl &harz, MusFiles &files)
 					disp.Bitmap(4, 5*8, RANDOM_13x16_BITMAP, RANDOM_LX,RANDOM_LY);
 				}
 			}
+
+			// 音量表示
+			static int oldVolume = g_Works.Volume;
+			if( oldVolume != g_Works.Volume ){
+				oldVolume = g_Works.Volume;
+				g_Events.Post(EVENT_REQ_SET_VOLUME);
+				volumeDispTim.Reset(1000/*ms*/);		// 1秒間、音量値を表示する
+			}
+			if( volumeDispTim.IsMidway() )
+				displayVolume(disp, g_Works.Volume);
+			if( volumeDispTim.IsTimeOut() )
+				volumeDispTim.Cancel();
+
 			// 描画内容をOLEDへ転送する
 			disp.Present();
 			++frameCnt;

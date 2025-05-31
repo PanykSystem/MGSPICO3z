@@ -25,9 +25,10 @@ enum TXCMD : uint8_t
 	TXCMD_HARZ_STOP		= 0x12,
 	TXCMD_padding1		= 0x13,		// (空き)
 	//
-	TXCMD_HARZ_GETSTS	= 0x14,		// 動作状態を返す
-	TXCMD_HARZ_SETCMD	= 0x15,
-	TXCMD_HARZ_CLKMODE	= 0x16,		// Z80速度 0=3.58MHz, 1=7.16Mhz
+	TXCMD_HARZ_GETSTS		= 0x14,		// 動作状態を返す
+	TXCMD_HARZ_SETCMD		= 0x15,
+	TXCMD_HARZ_CLKMODE		= 0x16,		// Z80速度 0=3.58MHz, 1=7.16Mhz
+	TXCMD_HARZ_SETCMDDATA	= 0x17,
 };
 
 enum CCMD : uint8_t
@@ -36,6 +37,7 @@ enum CCMD : uint8_t
 	CCMD_PLAY			= 0x01,
 	CCMD_STOP			= 0x02,
 	CCMD_FADEOUT		= 0x03,
+	CCMD_VOLUME			= 0x04,
 };
 
 #pragma pack(push, 1)

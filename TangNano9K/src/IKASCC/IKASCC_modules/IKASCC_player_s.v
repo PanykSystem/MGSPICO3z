@@ -1,3 +1,5 @@
+`include "IKASCC_defines.vh"
+
 module IKASCC_player_s #(
     parameter RAM_TYPE = 1,
     parameter FAST_CLOCK = 0,

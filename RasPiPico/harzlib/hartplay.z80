@@ -2,26 +2,27 @@
 ;@title Sound driver contoller 
 ;@auther Harumakkin
 
-
 MUSTYPE:
-	.MGS		equ	0x00
-	.KINR5		equ	0x01
-	.TGF		equ	0x02
-	.VGM		equ	0x03
-	.NDP		equ	0x04
+	.MGS			equ	0x00
+	.KINR5			equ	0x01
+	.TGF			equ	0x02
+	.VGM			equ	0x03
+	.NDP			equ	0x04
 
 HARZIO:
-	.LED6		equ	0x00	;; bit0-5 = TangNano9K On board LED, biton -> turn-on
-	.CNT100US	equ	0x01	;; counter, update per 100us. stops at 255, resets to 0 on write.
-	.WKRAM_WR	equ	0x02	;; write to work-RAM for Pico
-	.WKRAM_ED	equ	0x03	;; Declare the end of work-RAM rewriting.
-	.CCMD_RD	equ	0x04	;; Command code from Pico. Can only be read once.
+	.LED6			equ	0x00	;; bit0-5 = TangNano9K On board LED, biton -> turn-on
+	.CNT100US		equ	0x01	;; counter, update per 100us. stops at 255, resets to 0 on write.
+	.WKRAM_WR		equ	0x02	;; write to work-RAM for Pico
+	.WKRAM_ED		equ	0x03	;; Declare the end of work-RAM rewriting.
+	.CCMD_RD_CODE	equ	0x04	;; Command code from Pico. Can only be read once.
+	.CCMD_RD_DATA	equ	0x05	;; Command data from Pico.
 
 CCMD:
-	.NOP		equ	0x00	;; don't care.
-	.PLAY		equ	0x01	;;
-	.STOP		equ	0x02	;;
-	.FADEOUT	equ	0x03	;;
+	.NOP			equ	0x00	;; don't care.
+	.PLAY			equ	0x01	;;
+	.STOP			equ	0x02	;;
+	.FADEOUT		equ	0x03	;;
+	.VOLUME			equ 0x04	;;
 
 ; MGSDRV's sub-routines
 MGS:
@@ -242,7 +243,7 @@ MGS_INITSYS:
 
 MGS_ACTCMD:
 	.begin
-		in		A, (HARZIO.CCMD_RD)
+		in		A, (HARZIO.CCMD_RD_CODE)
 		or		A
 	;case CCMD.NONE
 		ret		z
@@ -256,12 +257,13 @@ MGS_ACTCMD:
 		call	LED5N
 		halt					; 停止
 	.@1
-		call	MGS_VOLUME_MAX
 		ld		DE, MGS.MUSDATA	; 演奏データのアドレス
 		ld		B, 0xff
 		ld		HL, 0xffff
 		call	MGS.PLYST
-		call	PLAYTIME_RESET	; 再生タイム値をリセット
+		ld		A, (MGS_WORK.ui_volume)		; ユーザー操作による音量値を再設定
+		call	MGS_SET_VOLUME
+		call	PLAYTIME_RESET				; 再生タイム値をリセット
 		ld		A, 0x01
 		ld		(MGS_SYSINFO.playsts), A
 		call	CCMDCNT_INC
@@ -270,7 +272,6 @@ MGS_ACTCMD:
 	.stop
 		dec		A
 		jr		nz, .fadeout
-		call	MGS_VOLUME_MIN
 		call	MGS.INITM
 		call	PLAYTIME_RESET	; 再生タイム値をリセット
 		xor		A
@@ -280,15 +281,22 @@ MGS_ACTCMD:
 	;case CCMD.FADEOUT
 	.fadeout
 		dec		A
-		ret		nz
+		jr		nz, .volume
 		ld		A, (MGS_SYSINFO.playsts)
 		cp		0x01
 		ret		nz
 		ld		A, 0x02						; Start fadeout.
 		ld		(MGS_SYSINFO.playsts), A
-		xor		A
-		ld		(MGS_WORK.fo_volume), A
 		ld		(MGS_WORK.fo_step), A
+		call	CCMDCNT_INC
+		ret
+	; case CCMD.VOLUME
+	.volume
+		dec		A
+		ret		nz
+		in		A, (HARZIO.CCMD_RD_DATA)
+		ld		(NDP_WORK.ui_volume), A
+		call	MGS_SET_VOLUME
 		call	CCMDCNT_INC
 		ret
 
@@ -333,16 +341,6 @@ MGS_FADEOUT:
 	.finish
 		ret
 
-MGS_VOLUME_MIN:
-	.begin
-		ld		A, 15	; 最小音量
-		jr		MGS_SET_VOLUME
-
-MGS_VOLUME_MAX:
-	.begin
-		ld		A, 0	; 最大音量
-		jr		MGS_SET_VOLUME
-
 MGS_SET_VOLUME:
 	.begin
 		ld		(MGS_WORK.fo_volume), A
@@ -359,7 +357,8 @@ MGS_SYSINFO:
 	.updatecnt	DB	0x00
 	.playsts	DB	0x00		; 0x00=stop, 0x01=play, 0x02=fadeout
 MGS_WORK:
-	.fo_volume	DB	0x00
+	.ui_volume	DB	0x00		; ユーザー意思の音量値
+	.fo_volume	DB	0x00		; フェード中の音量値
 	.fo_step	DB	0x00
 
 MGS_MAKEINFO:
@@ -451,7 +450,7 @@ KINR5_INITSYS:
 
 KINR5_ACTCMD:
 	.begin
-		in		A, (HARZIO.CCMD_RD)
+		in		A, (HARZIO.CCMD_RD_CODE)
 		or		A
 	;case CCMD.NONE
 		ret		z
@@ -459,13 +458,14 @@ KINR5_ACTCMD:
 	.play	
 		dec		A
 		jr		nz, .stop
-		call	KINR5_VOLUME_MAX
 		ld		IX, KINR5.MUSDATA
 		ld		E, (IX+1)		; 開始アドレス
 		ld		D, (IX+2)
 		ld		HL, 0x8007		; 格納場所
 		ld		A, 0x00			; 0=無限ループ
 		call	KINR5.MPLAY2
+		ld		A, (MGS_WORK.ui_volume)		; ユーザー操作による音量値を再設定
+		call	KINR5_SET_VOLUME
 		call	PLAYTIME_RESET	; 再生タイム値をリセット
 		ld		A, 0x01
 		ld		(KINR5_SYSINFO.playsts), A
@@ -475,7 +475,6 @@ KINR5_ACTCMD:
 	.stop
 		dec		A
 		jr		nz, .fadeout
-		call	KINR5_VOLUME_MIN
 		call	KINR5.MSTOP
 		call	PLAYTIME_RESET	; 再生タイム値をリセット
 		xor		A
@@ -485,15 +484,22 @@ KINR5_ACTCMD:
 	;case CCMD.FADEOUT
 	.fadeout
 		dec		A
-		ret		nz
+		jr		nz, .volume
 		ld		A, (KINR5_SYSINFO.playsts)
 		cp		0x01
 		ret		nz
 		ld		A, 0x02						; Start fadeout.
 		ld		(KINR5_SYSINFO.playsts), A
-		xor		A
-		ld		(KINR5_WORK.fo_volume), A
 		ld		(KINR5_WORK.fo_step), A
+		call	CCMDCNT_INC
+		ret
+	; case CCMD.VOLUME
+	.volume
+		dec		A
+		ret		nz
+		in		A, (HARZIO.CCMD_RD_DATA)
+		ld		(NDP_WORK.ui_volume), A
+		call	KINR5_SET_VOLUME
 		call	CCMDCNT_INC
 		ret
 
@@ -538,16 +544,6 @@ KINR5_FADEOUT:
 	.finish
 		ret
 
-KINR5_VOLUME_MIN:
-	.begin
-		ld		A, 15	; 最小音量
-		jr		KINR5_SET_VOLUME
-
-KINR5_VOLUME_MAX:
-	.begin
-		ld		A, 0	; 最大音量
-		jr		KINR5_SET_VOLUME
-
 KINR5_SET_VOLUME:
 	.begin
 		ld		(KINR5_WORK.fo_volume), A
@@ -561,7 +557,8 @@ KINR5_SYSINFO:
 	.updatecnt	DB	0x00
 	.playsts	DB	0x00		; 0x00=stop, 0x01=play, 0x02=fadeout
 KINR5_WORK:
-	.fo_volume	DB	0x00
+	.ui_volume	DB	0x00		; ユーザー意思の音量値
+	.fo_volume	DB	0x00		; フェード中の音量値
 	.fo_step	DB	0x00
 
 KINR5_MAKEINFO:
@@ -652,7 +649,7 @@ NDP_INITSYS:
 
 NDP_ACTCMD:
 	.begin
-		in		A, (HARZIO.CCMD_RD)
+		in		A, (HARZIO.CCMD_RD_CODE)
 		or		A
 	;case CCMD.NONE
 		ret		z
@@ -660,11 +657,12 @@ NDP_ACTCMD:
 	.play	
 		dec		A
 		jr		nz, .stop
-		ld		DE, NDP.MUSDATA		; 曲データ先頭アドレスをセット
+		ld		DE, NDP.MUSDATA				; 曲データ先頭アドレスをセット
 		call	NDP.ADRSET
-		call	NDP_VOLUME_MAX
 		call	NDP.MSTART
-		call	PLAYTIME_RESET		; 再生タイム値をリセット
+		ld		A, (NDP_WORK.ui_volume)		; ユーザー操作による音量値を再設定
+		call	NDP_SET_VOLUME
+		call	PLAYTIME_RESET				; 再生タイム値をリセット
 		ld		A, 0x01
 		ld		(NDP_SYSINFO.playsts), A
 		call	CCMDCNT_INC
@@ -673,7 +671,6 @@ NDP_ACTCMD:
 	.stop
 		dec		A
 		jr		nz, .fadeout
-		call	NDP_VOLUME_MIN
 		call	NDP.MSTOP
 		call	PLAYTIME_RESET	; 再生タイム値をリセット
 		xor		A
@@ -683,15 +680,22 @@ NDP_ACTCMD:
 	;case CCMD.FADEOUT
 	.fadeout
 		dec		A
-		ret		nz
+		jr		nz, .volume
 		ld		A, (NDP_SYSINFO.playsts)
 		cp		0x01
 		ret		nz
 		ld		A, 0x02						; Start fadeout.
 		ld		(NDP_SYSINFO.playsts), A
-		xor		A
-		ld		(NDP_WORK.fo_volume), A
 		ld		(NDP_WORK.fo_step), A
+		call	CCMDCNT_INC
+		ret
+	; case CCMD.VOLUME
+	.volume
+		dec		A
+		ret		nz
+		in		A, (HARZIO.CCMD_RD_DATA)
+		ld		(NDP_WORK.ui_volume), A
+		call	NDP_SET_VOLUME
 		call	CCMDCNT_INC
 		ret
 
@@ -735,16 +739,6 @@ NDP_FADEOUT:
 	.finish
 		ret
 
-NDP_VOLUME_MIN:
-	.begin
-		ld		A, 15	; 最小音量
-		jr		NDP_SET_VOLUME
-
-NDP_VOLUME_MAX:
-	.begin
-		ld		A, 0	; 最大音量
-		jr		NDP_SET_VOLUME
-
 NDP_SET_VOLUME:
 	.begin
 		ld		(NDP_WORK.fo_volume), A
@@ -755,7 +749,8 @@ NDP_SYSINFO:
 	.updatecnt	DB	0x00
 	.playsts	DB	0x00		; 0x00=stop, 0x01=play, 0x02=fadeout
 NDP_WORK:
-	.fo_volume	DB	0x00
+	.ui_volume	DB	0x00		; ユーザー意思の音量値
+	.fo_volume	DB	0x00		; フェード中の音量値
 	.fo_step	DB	0x00
 
 NDP_MAKEINFO:
@@ -794,8 +789,17 @@ NDP_MAKEINFO:
 		out		(C), A
 		call	NDP.RDLOOP
 		out		(C), A							; LOOPCT
+		; 演奏終了判定は、まず、LOOPCTが=255なら終了していると判断し、
+		; 255以外ならRDSTATを使用して判断する
+		; 前者は曲の終端を判断し、後者はフェードアウト終了の判断を行っている
+		inc		A
+		jr		nz, .@1
+		out		(C), A							; PLAYFG 0=演奏終了、!0=演奏中
+		jr		.@2
+	.@1
 		call	NDP.RDSTAT
-		out		(C), A							; PLAYFG
+		out		(C), A
+	.@2
 		;
 		ld		A, (NDP.TRACK_A)
 		out		(C), A
@@ -820,14 +824,11 @@ NDP_MAKEINFO:
 		;
 		ld		B, 17-4
 		xor		A
-	.@1
+	.@3
 		out		(C), A
 		out		(C), A
-		djnz	.@1
+		djnz	.@3
 		;
 		out		(HARZIO.WKRAM_ED), A			; finish(don't care the value of A).
 		ret
-
-
-
 

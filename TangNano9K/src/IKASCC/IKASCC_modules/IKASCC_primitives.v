@@ -1,3 +1,5 @@
+`include "IKASCC_defines.vh"
+
 module IKASCC_primitive_dncntr #(parameter W = 4) (
     input   wire                i_EMUCLK,
     input   wire                i_MCLK_PCEN_n,
@@ -39,15 +41,18 @@ module IKASCC_primitive_buf (
 
 `ifdef IKASCC_ASYNC_VENDOR_SIMULATION
 assign #1 o_Y = i_A;
+`elsif IKASCC_ASYNC_VENDOR_GOWIN
+BUFG u_bufg(o_Y, i_A);
 `else
 assign o_Y = i_A;
 `endif 
-
 endmodule
 
+/*
 `ifdef IKASCC_ASYNC_VENDOR_GOWIN
 module BUFG (O, I);
 output O;
 input I;
 endmodule
 `endif
+*/

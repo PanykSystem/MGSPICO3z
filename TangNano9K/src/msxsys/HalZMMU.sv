@@ -12,6 +12,7 @@ module HarzMMU
 	pamux_if.client				bus_Pamux,
 	txworkram_if.host			bus_TxWork,
 	ccmnd_if.host				bus_CCmd,
+	ccmnd_if.host				bus_CCmdData,
 	input	wire [4:0]			i_masicn_IKASCC,
 	//
 	// 音声出力
@@ -98,14 +99,15 @@ end
 // SLOTS&PAGES
 BasicSlotUnit u_BasicSlotSystem
 (
-	.i_CLK		(i_CLK			),
-	.i_RST_n	(i_RST_n		),
+	.i_CLK			(i_CLK			),
+	.i_RST_n		(i_RST_n		),
 	//
-	.bus_Slot	(bus_Slot		),
-	.bus_Pamux	(bus_Pamux		),
-	.bus_TxWork	(bus_TxWork		),
-	.bus_Sound	(bus_Sound		),
-	.bus_CCmd	(bus_CCmd		),
+	.bus_Slot		(bus_Slot		),
+	.bus_Pamux		(bus_Pamux		),
+	.bus_TxWork		(bus_TxWork		),
+	.bus_Sound		(bus_Sound		),
+	.bus_CCmd		(bus_CCmd		),
+	.bus_CCmdData	(bus_CCmdData	),
 	//
 	.i_masicn_IKASCC(i_masicn_IKASCC),
 	//

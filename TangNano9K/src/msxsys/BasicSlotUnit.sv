@@ -11,6 +11,7 @@ module BasicSlotUnit
 	pamux_if.client				bus_Pamux,
 	txworkram_if.host			bus_TxWork,
 	ccmnd_if.host				bus_CCmd,
+	ccmnd_if.host				bus_CCmdData,
 	//
 	soundbus_if.src				bus_Sound,
 	//
@@ -95,23 +96,47 @@ TxWorkRam u_txworkram(
 // ==========================================================================
 // CCMD_RD (I/O 0x04)
 // ==========================================================================
-wire io_acc_ccmd = ((bus_Slot.a[7:0]==8'h04)&&bus_Slot.iorq);
-assign bus_Slot.read_d = (io_acc_ccmd && bus_Slot.rd) ? ff_ccmd_data_out : 8'bz;
+wire io_acc_ccmd_code = ((bus_Slot.a[7:0]==8'h04)&&bus_Slot.iorq);
+assign bus_Slot.read_d = (io_acc_ccmd_code && bus_Slot.rd) ? ff_ccmd_code_out : 8'bz;
+reg [7:0] ff_ccmd_code;
+reg [7:0] ff_ccmd_code_out;
+reg [1:0] ff_ccmd_code_sht;
+
+always_ff@(posedge i_CLK ) begin
+ 	if( !i_RST_n ) begin
+		ff_ccmd_code <= 8'h00;
+	end
+	else begin
+		ff_ccmd_code_sht <= {ff_ccmd_code_sht[0], bus_Slot.rd};
+		if( bus_CCmd.write ) begin
+			ff_ccmd_code <= bus_CCmd.write_data;
+		end
+		else if( io_acc_ccmd_code && ff_ccmd_code_sht == 2'b01 ) begin
+			ff_ccmd_code <= 8'h00;
+			ff_ccmd_code_out <= ff_ccmd_code;
+		end
+	end
+end
+
+// ==========================================================================
+// CCMD_DT (I/O 0x05)
+// ==========================================================================
+wire io_acc_ccmd_data = ((bus_Slot.a[7:0]==8'h05)&&bus_Slot.iorq);
+assign bus_Slot.read_d = (io_acc_ccmd_data && bus_Slot.rd) ? ff_ccmd_data_out : 8'bz;
 reg [7:0] ff_ccmd_data;
 reg [7:0] ff_ccmd_data_out;
-reg [1:0] ff_ccmd_rd_sht;
+reg [1:0] ff_ccmd_data_sht;
 
 always_ff@(posedge i_CLK ) begin
  	if( !i_RST_n ) begin
 		ff_ccmd_data <= 8'h00;
 	end
 	else begin
-		ff_ccmd_rd_sht <= {ff_ccmd_rd_sht[0], bus_Slot.rd};
-		if( bus_CCmd.write ) begin
-			ff_ccmd_data <= bus_CCmd.write_data;
+		ff_ccmd_data_sht <= {ff_ccmd_data_sht[0], bus_Slot.rd};
+		if( bus_CCmdData.write ) begin
+			ff_ccmd_data <= bus_CCmdData.write_data;
 		end
-		else if( io_acc_ccmd && ff_ccmd_rd_sht == 2'b01 ) begin
-			ff_ccmd_data <= 8'h00;
+		else if( io_acc_ccmd_data && ff_ccmd_data_sht == 2'b01 ) begin
 			ff_ccmd_data_out <= ff_ccmd_data;
 		end
 	end

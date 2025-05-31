@@ -1,3 +1,5 @@
+`include "IKASCC_defines.vh"
+
 module IKASCC_vrc_a (
     //reset
     input   wire            i_RST_n, //synchronous reset

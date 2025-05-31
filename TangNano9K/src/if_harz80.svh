@@ -26,10 +26,10 @@ typedef enum logic [7:0]
 	TXCMD_HARZ_STOP		= 8'h12,
 	TXCMD_HARZ_RESUME	= 8'h13,
 	//
-	TXCMD_HARZ_GETSTS	= 8'h14,		// 動作状態を返す
-	TXCMD_HARZ_SETCMD	= 8'h15,
-	//
-	TXCMD_HARZ_CLKMODE	= 8'h16,
+	TXCMD_HARZ_GETSTS		= 8'h14,		// 動作状態を返す
+	TXCMD_HARZ_SETCMD		= 8'h15,
+	TXCMD_HARZ_CLKMODE		= 8'h16,
+	TXCMD_HARZ_SETCMDDATA	= 8'h17,
 	//
 	TXCMD_HARZ_EOT		= 8'hff
 } txcmd_t;
