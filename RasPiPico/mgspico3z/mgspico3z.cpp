@@ -35,7 +35,7 @@
 
 // -----------------------------------------------------------------------------
 // VERSION
-static const char *pFIRMVERSION = "v3.2.1";
+static const char *pFIRMVERSION = "v3.2.2";
 
 // -----------------------------------------------------------------------------
 static char tempWorkPath[255+1];
@@ -1153,14 +1153,16 @@ static void dispPlayer(CSsd1306I2c &disp, CHarz80Ctrl &harz, MusFiles &files)
 				{
 					switch((uint8_t)dt.Value)
 					{
-						case 30:	g_Works.Volume += (g_Works.Volume<15)?1:0;		break;
-						case 31:	g_Works.Volume += (0<g_Works.Volume)?-1:0;		break;
-//						case 30:	g_Events.Post(EVENT_KEY, KEYSTS_PUSH, KEY_UP);		g_Events.Post(EVENT_KEY, KEYSTS_RELEASE, KEY_UP);		break;
-//						case 31:	g_Events.Post(EVENT_KEY, KEYSTS_PUSH, KEY_DOWN);	g_Events.Post(EVENT_KEY, KEYSTS_RELEASE, KEY_DOWN);		break;
-						case 32:	g_Events.Post(EVENT_KEY, KEYSTS_PUSH, KEY_APPLY);	g_Events.Post(EVENT_KEY, KEYSTS_RELEASE, KEY_APPLY);	break;
-						case 33:	g_Events.Post(EVENT_KEY, KEYSTS_PUSH, KEY_DOWN);	g_Events.Post(EVENT_KEY, KEYSTS_RELEASE, KEY_DOWN);		break;
-						case 34:	g_Events.Post(EVENT_KEY, KEYSTS_PUSH, KEY_APPLY);	g_Events.Post(EVENT_KEY, KEYSTS_RELEASE, KEY_APPLY);	break;
-						case 35:	g_Events.Post(EVENT_KEY, KEYSTS_PUSH, KEY_UP);		g_Events.Post(EVENT_KEY, KEYSTS_RELEASE, KEY_UP);		break;
+//						case 30:	/*KEY 左*/	g_Works.Volume += (g_Works.Volume<15)?1:0;		break;
+//						case 31:	/*KEY 中*/	g_Works.Volume += (0<g_Works.Volume)?-1:0;		break;
+						case 30:	/*KEY 左*/	g_Events.Post(EVENT_KEY, KEYSTS_PUSH, KEY_UP);		g_Events.Post(EVENT_KEY, KEYSTS_RELEASE, KEY_UP);		break;
+						case 31:	/*KEY 中*/	g_Events.Post(EVENT_KEY, KEYSTS_PUSH, KEY_DOWN);	g_Events.Post(EVENT_KEY, KEYSTS_RELEASE, KEY_DOWN);		break;
+						case 32:	/*KEY 右*/	g_Events.Post(EVENT_KEY, KEYSTS_PUSH, KEY_APPLY);	g_Events.Post(EVENT_KEY, KEYSTS_RELEASE, KEY_APPLY);	break;
+//						case 33:	/*回転 左*/	g_Events.Post(EVENT_KEY, KEYSTS_PUSH, KEY_DOWN);	g_Events.Post(EVENT_KEY, KEYSTS_RELEASE, KEY_DOWN);		break;
+// /*ロータリー押下*/	case 34:	/*回転 押*/	g_Events.Post(EVENT_KEY, KEYSTS_PUSH, KEY_APPLY);	g_Events.Post(EVENT_KEY, KEYSTS_RELEASE, KEY_APPLY);	break;
+//						case 35:	/*回転 右*/	g_Events.Post(EVENT_KEY, KEYSTS_PUSH, KEY_UP);		g_Events.Post(EVENT_KEY, KEYSTS_RELEASE, KEY_UP);		break;
+						case 33:	/*回転 反時計*/	g_Works.Volume += (0<g_Works.Volume)?-1:0;		break;
+						case 35:	/*回転 時計*/	g_Works.Volume += (g_Works.Volume<15)?1:0;		break;
 					}
 					break;
 				}
@@ -1359,13 +1361,18 @@ static void dsipSttMenu(
 	return;
 }
 
-static void dispMenus(
-	CSsd1306I2c &disp, const int topNo, const int seleNo,
-	const MgspicoSettings &stt)
+static void dispSettingMenuTitle(CSsd1306I2c &disp)
 {
 	disp.Clear();
 	disp.Strings8x16(2, 0, "SETTINGS");
 	disp.Box(0, 0, 2+8*8, 13, true);
+	return;
+}
+
+static void dispSettingMenu(
+	CSsd1306I2c &disp, const int topNo, const int seleNo,
+	const MgspicoSettings &stt)
+{
 	for( int t = 0; t < NUM_DISP_MENUITEMS; ++t) {
 		const int index = topNo-1+t;
 		auto &item = *stt.GetItem(index);
@@ -1380,9 +1387,12 @@ static void dispSettingMenu(
 {
 	int topNo = 1;
 	int seleNo = 1;
-	dispMenus(disp, topNo, seleNo, stt);
+	dispSettingMenuTitle(disp);
 	disp.Present();
 	waitForKeyRelease();
+
+	dispSettingMenu(disp, topNo, seleNo, stt);
+	disp.Present();
 
 	CMsCount updDispTim(16/*ms*/);
 	CMsCount pressApllyTim;
@@ -1473,8 +1483,10 @@ static void dispSettingMenu(
 		if( updDispTim.IsTimeOut(true) ){
 			disp.Clear();
 			// pressApllyTimタイムアウトしたら画面が真っ暗になるようにする
-			if( !pressApllyTim.IsTimeOut() )
-				dispMenus(disp, topNo, seleNo, stt);
+			if( !pressApllyTim.IsTimeOut() ){
+				dispSettingMenuTitle(disp);
+				dispSettingMenu(disp, topNo, seleNo, stt);
+			}
 			disp.Present();
 		}
 	}

@@ -1,4 +1,4 @@
-`include "IKASCC_defines.vh"
+`include "../IKASCC_defines.vh"
 
 module IKASCC_player_s #(
     parameter RAM_TYPE = 1,

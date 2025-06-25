@@ -1,4 +1,4 @@
-`include "IKASCC_defines.vh"
+`include "../IKASCC_defines.vh"
 
 module IKASCC_primitive_dncntr #(parameter W = 4) (
     input   wire                i_EMUCLK,

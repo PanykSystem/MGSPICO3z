@@ -18,6 +18,7 @@ module HarzMMU
 	// 音声出力
 	soundbus_if.src				bus_Sound,
 	//
+	output	wire [7:0]			o_MIXVOL,
 	// TangNano9K OnBoard LEDx6, `LOW=Turn-On
 	output	reg[5:0]			o_LED
 
@@ -111,7 +112,8 @@ BasicSlotUnit u_BasicSlotSystem
 	//
 	.i_masicn_IKASCC(i_masicn_IKASCC),
 	//
-	.o_LED		(o_LED			)
+	.o_MIXVOL		(o_MIXVOL		),
+	.o_LED			(o_LED			)
 );
 
 //-----------------------------------------------------------------------

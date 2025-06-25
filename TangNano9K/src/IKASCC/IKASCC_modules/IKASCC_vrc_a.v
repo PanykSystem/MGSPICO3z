@@ -1,4 +1,4 @@
-`include "IKASCC_defines.vh"
+`include "../IKASCC_defines.vh"
 
 module IKASCC_vrc_a (
     //reset

@@ -7,7 +7,7 @@
 module halmem (
 	input	wire		i_RST_n,
 	input	wire		i_CLK_3M579,
-	input	wire		i_CLK_3M072,		// for SPDIF 3.072MHz
+	input	wire		i_CLK_3M072,		// for SPDIF 3.072MHz  (48KHz 32bits x2) by External
 	output	wire		o_CLK_71M7,
 // SPI(Pico -> TangNano9K)
 	input	wire		i_SPI_CS_n,
@@ -53,7 +53,7 @@ localparam LATENCY = 3;
 // CLOCK
 //-----------------------------------------------------------------------
 /// 17.9MHz
-wire clk_17M9;
+wire clk_17M9;					// for DAC
 Gowin_OSC u_osc (
 	.oscout		(clk_17M9)
 );
@@ -66,29 +66,53 @@ Gowin_rPLL_x20p u_rPLL_x20(
 	.clkin		(i_CLK_3M579)
 );
 ///
-wire clk_SPIRX		= clk_71M7;
-wire clk_PSRAM		= clk_71M7;
-wire clk_PSRAM_p	= clk_71M7_p;
-wire clk_CONTROL	= clk_71M7;
-wire clk_SND		= i_CLK_3M579;
-wire clk_Z80CPU		= i_CLK_3M579;
-wire clk_SPDIF		= i_CLK_3M072;		// for S/PIDIF 48KHz(32bits x2) (by External)
-wire clk_DAC		= clk_17M9;
-//
 assign o_CLK_71M7	= clk_71M7;
 
 //-----------------------------------------------------------------------
 // MIXER
 //-----------------------------------------------------------------------
-wire signed [10:0] 	snd_WTS_w		= (11'h400 <= bus_Sound.WTS) ? bus_Sound.WTS-11'h400 : bus_Sound.WTS+11'h400;
-wire signed [15:0]	snd_WTS_x		= {{5{snd_WTS_w[10]}}, snd_WTS_w} * 6'sd8;
-wire signed [15:0]	snd_IKASCC_x	= {{5{bus_Sound.IKASCC[10]}}, bus_Sound.IKASCC} * 6'sd8;
-wire signed [15:0]	snd_PSG_x		= bus_Sound.PSG / 2'sd2;
-wire signed [15:0]	SOUND_OPLL_x	= bus_Sound.OPLL;
+wire signed [5:0]	Volume_Percent = 6'(8'd15 - (mix_vol_f[7:0]));
+wire 		[15:0]	mix_vol_f;
+MMP_cdc_F2L u_VolCdc (
+	.i_RST_n	(i_RST_n		),
+	.i_CLK_A	(clk_71M7		),
+	.i_DATA_A	(16'(mix_vol)	),
+	.i_CLK_B	(i_CLK_3M579	),
+	.o_DATA_B	(mix_vol_f		)
+);
+
+wire signed [15:0]	snd_IKASCC_x	= $signed(bus_Sound.IKASCC * 8);
+wire signed [15:0]	snd_PSG_x		= $signed(bus_Sound.PSG / 2'sd2);
+wire signed [15:0]	SOUND_OPLL_x	= $signed(bus_Sound.OPLL);
 wire signed [15:0]	SOUND_SCC_y		= 16'sd0;//{bus_Sound.IKASCC, 5'b0};
 wire signed [15:0]	SOUND_PSG_y	 	= 16'sd0;//{bus_Sound.PSG, 2'b0};
 wire signed [15:0]	SOUND_OPLL_y	= 16'sd0;// bus_Sound.OPLL;
-wire signed [15:0]	SOUND_ALL_y		= SOUND_OPLL_x + snd_IKASCC_x + snd_PSG_x /*+ snd_WTS_x*/;
+wire signed [19:0]	SOUND_ALL_w		= $signed(SOUND_OPLL_x) + $signed(snd_IKASCC_x) + $signed(snd_PSG_x) /*+ snd_WTS_x*/;
+wire signed [26:0]	SOUND_ALL_x		= $signed(SOUND_ALL_w * Volume_Percent / 15);
+wire signed [15:0]	SOUND_ALL_y		= $signed(SOUND_ALL_x[15:0]);
+
+
+// 従来の処理
+// wire signed [10:0] 	snd_WTS_w		= (11'h400 <= bus_Sound.WTS) ? bus_Sound.WTS-11'h400 : bus_Sound.WTS+11'h400;
+// wire signed [15:0]	snd_WTS_x		= {{5{snd_WTS_w[10]}}, snd_WTS_w} * 6'sd8;
+// wire signed [15:0]	snd_IKASCC_x	= {{5{bus_Sound.IKASCC[10]}}, bus_Sound.IKASCC} * 6'sd8;
+// wire signed [15:0]	snd_PSG_x		= bus_Sound.PSG / 2'sd2;
+// wire signed [15:0]	SOUND_OPLL_x	= bus_Sound.OPLL;
+// wire signed [15:0]	SOUND_SCC_y		= 16'sd0;//{bus_Sound.IKASCC, 5'b0};
+// wire signed [15:0]	SOUND_PSG_y	 	= 16'sd0;//{bus_Sound.PSG, 2'b0};
+// wire signed [15:0]	SOUND_OPLL_y	= 16'sd0;// bus_Sound.OPLL;
+// wire signed [15:0]	SOUND_ALL_y		= ((SOUND_OPLL_x + snd_IKASCC_x + snd_PSG_x /*+ snd_WTS_x*/) * Volume_Percent) / 15;
+
+// wire signed [10:0] 	snd_WTS_w		= (11'h400 <= bus_Sound.WTS) ? bus_Sound.WTS-11'h400 : bus_Sound.WTS+11'h400;
+// wire signed [15:0]	snd_WTS_x		= {{5{snd_WTS_w[10]}}, snd_WTS_w} * 6'sd8;
+// wire signed [15:0]	snd_IKASCC_x	= {{5{bus_Sound.IKASCC[10]}}, bus_Sound.IKASCC} * 6'sd8;
+// wire signed [15:0]	snd_PSG_x		= bus_Sound.PSG / 2'sd2;
+// wire signed [15:0]	SOUND_OPLL_x	= bus_Sound.OPLL;
+// wire signed [15:0]	SOUND_SCC_y		= 16'sd0;//{bus_Sound.IKASCC, 5'b0};
+// wire signed [15:0]	SOUND_PSG_y	 	= 16'sd0;//{bus_Sound.PSG, 2'b0};
+// wire signed [15:0]	SOUND_OPLL_y	= 16'sd0;// bus_Sound.OPLL;
+// wire signed [15:0]	SOUND_ALL_y		= ((SOUND_OPLL_x + snd_IKASCC_x + snd_PSG_x /*+ snd_WTS_x*/) * Volume_Percent) >>> 4;
+// //ここからちぇっく
 
 //-----------------------------------------------------------------------
 // DAC
@@ -97,15 +121,15 @@ wire signed [15:0]	SOUND_DAC_z;
 
 MMP_cdc_L2F u_DacCdc (
 	.i_RST_n	(i_RST_n		),
-	.i_CLK_A	(clk_SND		),
+	.i_CLK_A	(i_CLK_3M579	),
 	.i_DATA_A	(SOUND_ALL_y	),
-	.i_CLK_B	(clk_DAC		),
+	.i_CLK_B	(clk_17M9		),
 	.o_DATA_B	(SOUND_DAC_z	)
 );
 
 MMP_dac u_Dac (
 	.i_RST_n	(i_RST_n		),
-	.i_CLK		(clk_DAC		),
+	.i_CLK		(clk_17M9		),
 	.i_SCC		(SOUND_SCC_y	),
 	.i_PSG		(SOUND_PSG_y	),
 	.i_OPLL		(SOUND_OPLL_y	),
@@ -119,18 +143,25 @@ MMP_dac u_Dac (
 //-----------------------------------------------------------------------
 // S/PDIF Transmitter
 //-----------------------------------------------------------------------
+wire i_CLK_3M072_DQCE;
+Gowin_DQCE u_Gowin_DQCE(
+	.clkin(i_CLK_3M072),
+	.clkout(i_CLK_3M072_DQCE),
+	.ce(`HIGH)
+);
+
 wire signed [15:0]	SOUND_SPDIF_z;
 MMP_cdc_F2L u_SpdifCdc (
 	.i_RST_n	(i_RST_n		),
-	.i_CLK_A	(clk_SND		),
+	.i_CLK_A	(i_CLK_3M579	),
 	.i_DATA_A	(SOUND_ALL_y	),
-	.i_CLK_B	(clk_SPDIF		),
+	.i_CLK_B	(i_CLK_3M072_DQCE	),
 	.o_DATA_B	(SOUND_SPDIF_z	)
 );
 
 MMP_spdif u_spdif (
 	.i_RST_n		(i_RST_n		),
-	.i_CLK_SPDIF	(clk_SPDIF		),
+	.i_CLK_SPDIF	(i_CLK_3M072_DQCE	),
 	.i_SOUND		(SOUND_SPDIF_z	),
 	.o_SPDIF		(o_SPDIF		)
 );
@@ -144,8 +175,8 @@ PsramController #(
 	.FREQ(FREQ),
 	.LATENCY(LATENCY)
 ) u_PsramCtrl(
-    .i_CLK				(clk_PSRAM		),
-    .i_CLK_p			(clk_PSRAM_p	),
+    .i_CLK				(clk_71M7		),
+    .i_CLK_p			(clk_71M7_p		),
     .i_RST_n			(i_RST_n		),
 	//
 	.bus_PsramCtrl		(bus_PsramCtrl	),
@@ -174,10 +205,11 @@ txworkram_if	bus_TxWork();
 ccmnd_if		bus_CCmd();
 ccmnd_if		bus_CCmdData();
 reg [4:0]		masicn_IKASCC;
+wire [7:0]		mix_vol;
 
 HarzMMU u_HarzMMU
 (
-	.i_CLK				(clk_CONTROL	),
+	.i_CLK				(clk_71M7		),
 	.i_RST_n			(i_RST_n		),
 	.bus_Harz			(bus_Harz		),
 	.bus_Z80			(bus_Z80		),
@@ -187,6 +219,7 @@ HarzMMU u_HarzMMU
 	.bus_CCmdData		(bus_CCmdData	),
 	.bus_Sound			(bus_Sound		),
 	.i_masicn_IKASCC	(masicn_IKASCC	),
+	.o_MIXVOL			(mix_vol		),
 	.o_LED				(o_LED			)
 );
 
@@ -240,7 +273,7 @@ wire		spirx_ena_fall;
 wire		spirx_shift;
 
 // メタステーブル対策のための入力バッファ
-always @(posedge clk_SPIRX) begin
+always @(posedge clk_71M7) begin
 	if (!i_RST_n) begin
 		spirx_buff_clk <= 3'b111;
 		spirx_buff_ena <= 3'b111;
@@ -336,7 +369,7 @@ typedef enum logic [5:0]
 membus_sts_t	membus_sts;
 
 
-always @(posedge clk_SPIRX) begin
+always @(posedge clk_71M7) begin
 	if (!i_RST_n) begin
 		spirx_sxv_data <= 64'h0;
 		spirx_rsv_data <= 64'h0;

@@ -16,6 +16,7 @@ HARZIO:
 	.WKRAM_ED		equ	0x03	;; Declare the end of work-RAM rewriting.
 	.CCMD_RD_CODE	equ	0x04	;; Command code from Pico. Can only be read once.
 	.CCMD_RD_DATA	equ	0x05	;; Command data from Pico.
+	.OUTVOL			equ	0x06	;; Volume
 
 CCMD:
 	.NOP			equ	0x00	;; don't care.
@@ -26,62 +27,62 @@ CCMD:
 
 ; MGSDRV's sub-routines
 MGS:
-	.MUSDATA	equ 0x8000	;; 楽曲データの位置アドレス
-	.SYSCK		equ	0x6010	;; 音源の有無を調べ初期化する
-	.INITM 		equ	0x6013	;; 演奏を止めてドライバを初期化する
-	.PLYST 		equ	0x6016	;; 演奏を開始する
-	.INTER		equ	0x601f	;; 割込ルーチンの先頭アドレス
-	.MSVST 		equ	0x6022	;; マスタボリウムのセット(A=0が最大)
-	.DATCK		equ	0x6028	;; 演奏データのヘッダを調べる
+	.MUSDATA		equ 0x8000	;; 楽曲データの位置アドレス
+	.SYSCK			equ	0x6010	;; 音源の有無を調べ初期化する
+	.INITM 			equ	0x6013	;; 演奏を止めてドライバを初期化する
+	.PLYST 			equ	0x6016	;; 演奏を開始する
+	.INTER			equ	0x601f	;; 割込ルーチンの先頭アドレス
+	.MSVST 			equ	0x6022	;; マスタボリウムのセット(A=0が最大)
+	.DATCK			equ	0x6028	;; 演奏データのヘッダを調べる
 ; Kinrou5(MUSICA)'s sub-routines
 KINR5:
-	.MUSDATA	equ 0x8000	;; 楽曲データの位置アドレス
-	.FMSLT		equ	0x6010	;; FM音源のスロット番号。無い場合は０
-	.SCCSLT		equ	0x6011	;; SCC音源のスロット番号。無い場合は０
-	.INITAL		equ	0x6020	;; 音源の有無を調べ初期化する
-	.MPLAY2		equ	0x6026	;; 演奏を開始する
-	.MINTER		equ	0x6029	;; 割込ルーチンの先頭アドレス
-	.MSTOP 		equ	0x602C	;; 演奏を止める
-	.PLYCHK		equ	0x6032	;; 演奏状態を得る
-	.ALLMVO		equ	0x6038	;; マスタボリウムのセット(A=0が最大)
-	.GETWORK	equ 0x6044	;; ワークエリアのアドレスを返す
+	.MUSDATA		equ 0x8000	;; 楽曲データの位置アドレス
+	.FMSLT			equ	0x6010	;; FM音源のスロット番号。無い場合は０
+	.SCCSLT			equ	0x6011	;; SCC音源のスロット番号。無い場合は０
+	.INITAL			equ	0x6020	;; 音源の有無を調べ初期化する
+	.MPLAY2			equ	0x6026	;; 演奏を開始する
+	.MINTER			equ	0x6029	;; 割込ルーチンの先頭アドレス
+	.MSTOP 			equ	0x602C	;; 演奏を止める
+	.PLYCHK			equ	0x6032	;; 演奏状態を得る
+	.ALLMVO			equ	0x6038	;; マスタボリウムのセット(A=0が最大)
+	.GETWORK		equ 0x6044	;; ワークエリアのアドレスを返す
 ; NDP's sub-routines
 NDP:
-	.MUSDATA	equ 0x4600	;; 楽曲データの位置アドレス
+	.MUSDATA		equ 0x4600	;; 楽曲データの位置アドレス
 	; API
-	.NDPINI		equ 0xC000	;; ドライバ初期化 (タイマ割り込みフックにドライバを接続)
-	.MSTART		equ 0xC003	;; 演奏開始 (ワークエリアをゼロクリアし演奏開始。フックは操作しない)
-	.MSTOP		equ 0xC006	;;  演奏停止 (演奏停止してPSGレジスタを初期化。フックは操作しない)
-	.INTRPT		equ 0xC009	;; 割り込み処理 (フックに接続せずに自前で割り込みルーチンを呼ぶ際に使用)
-	.U_ADR		equ 0xC00C	;;  (※)曲データ開始アドレス設定 (引数で指定。デフォルトの04000Hなら設定不要)
-	.U_OFF1		equ 0xC00F	;; (※)Ch.A 一時ミュート (ミュートするフレーム数を引数で指定 [2～254/1=解除/255=常時ミュート])
-	.U_OFF2		equ 0xC012	;; (※)Ch.B 〃
-	.U_OFF3		equ 0xC015	;; (※)Ch.C 〃
-	.U_MV		equ 0xC018	;;   (※)マスター音量オフセット (引数で渡した値を音量値から減算する)
-	.U_MFO		equ 0xC01B	;;  (※)フェードアウト (引数で渡したフレーム数ずつフェードアウト)
-	.U_MFI		equ 0xC01E	;;  (※)フェードインしながら演奏開始 (引数で渡したフレーム数ずつフェードイン)
-	.U_SE		equ 0xC021	;;   (※)効果音発音 (効果音データのアドレスを引数で指定)
-	.CH1OFF		equ 0xC024	;; Ch.A 一時ミュート (D←ミュートするフレーム数 [2～254/1=解除/255=常時ミュート])
-	.CH2OFF		equ 0xC027	;; Ch.B 〃
-	.CH3OFF		equ 0xC02A	;; Ch.C 〃
-	.MVSET		equ 0xC02D	;;  マスター音量オフセット (A←音量値から減算する値)
-	.MFOSET		equ 0xC030	;; フェードアウト (A←各段階のフレーム数)
-	.RDSTAT		equ 0xC033	;; 演奏状態→A (0:停止中 1:演奏中)
-	.RDENDT		equ 0xC036	;; 各トラックの演奏が終端まで達したかどうか→A (0000321Rのビットフィールド)
-	.RDLOOP		equ 0xC039	;; 曲がループした回数→A (曲データの+0BHを見て無限ループしない曲なら演奏終了時に255が返る)
-	.ADRSET		equ 0xC03C	;; 曲データ開始アドレス設定 (DE←アドレス。デフォルトの04000Hなら設定不要) 
-	.MPLAYF		equ 0xC03F	;; フェードインしながら演奏開始 (A←各段階のフレーム数)
-	.SEPLAY		equ 0xC042	;; 効果音発音 (DE←効果音データのアドレス)
-	.VSET		equ 0xC045	;;   音色データをドライバに反映 (HL←音色定義データのアドレス)
-	.SYSVER		equ 0xC048	;; ドライバのバージョン番号→HL (L=小数点以下、H=整数部。整数部が0なら0.9として扱う)
-	.NDPOFF		equ 0xC04B	;; ドライバ終了 (タイマ割り込みフックからドライバを切り離して発音停止)
-	.SETHF		equ 0xC04E	;;  タイマ割り込みフック接続フラグ←A
-	.KSSPLY		equ 0xC051	;; 退避したH.TIMIをRETで潰して演奏開始 (KSSプレイヤー用)
+	.NDPINI			equ 0xC000	;; ドライバ初期化 (タイマ割り込みフックにドライバを接続)
+	.MSTART			equ 0xC003	;; 演奏開始 (ワークエリアをゼロクリアし演奏開始。フックは操作しない)
+	.MSTOP			equ 0xC006	;;  演奏停止 (演奏停止してPSGレジスタを初期化。フックは操作しない)
+	.INTRPT			equ 0xC009	;; 割り込み処理 (フックに接続せずに自前で割り込みルーチンを呼ぶ際に使用)
+	.U_ADR			equ 0xC00C	;;  (※)曲データ開始アドレス設定 (引数で指定。デフォルトの04000Hなら設定不要)
+	.U_OFF1			equ 0xC00F	;; (※)Ch.A 一時ミュート (ミュートするフレーム数を引数で指定 [2～254/1=解除/255=常時ミュート])
+	.U_OFF2			equ 0xC012	;; (※)Ch.B 〃
+	.U_OFF3			equ 0xC015	;; (※)Ch.C 〃
+	.U_MV			equ 0xC018	;;   (※)マスター音量オフセット (引数で渡した値を音量値から減算する)
+	.U_MFO			equ 0xC01B	;;  (※)フェードアウト (引数で渡したフレーム数ずつフェードアウト)
+	.U_MFI			equ 0xC01E	;;  (※)フェードインしながら演奏開始 (引数で渡したフレーム数ずつフェードイン)
+	.U_SE			equ 0xC021	;;   (※)効果音発音 (効果音データのアドレスを引数で指定)
+	.CH1OFF			equ 0xC024	;; Ch.A 一時ミュート (D←ミュートするフレーム数 [2～254/1=解除/255=常時ミュート])
+	.CH2OFF			equ 0xC027	;; Ch.B 〃
+	.CH3OFF			equ 0xC02A	;; Ch.C 〃
+	.MVSET			equ 0xC02D	;;  マスター音量オフセット (A←音量値から減算する値)
+	.MFOSET			equ 0xC030	;; フェードアウト (A←各段階のフレーム数)
+	.RDSTAT			equ 0xC033	;; 演奏状態→A (0:停止中 1:演奏中)
+	.RDENDT			equ 0xC036	;; 各トラックの演奏が終端まで達したかどうか→A (0000321Rのビットフィールド)
+	.RDLOOP			equ 0xC039	;; 曲がループした回数→A (曲データの+0BHを見て無限ループしない曲なら演奏終了時に255が返る)
+	.ADRSET			equ 0xC03C	;; 曲データ開始アドレス設定 (DE←アドレス。デフォルトの04000Hなら設定不要) 
+	.MPLAYF			equ 0xC03F	;; フェードインしながら演奏開始 (A←各段階のフレーム数)
+	.SEPLAY			equ 0xC042	;; 効果音発音 (DE←効果音データのアドレス)
+	.VSET			equ 0xC045	;;   音色データをドライバに反映 (HL←音色定義データのアドレス)
+	.SYSVER			equ 0xC048	;; ドライバのバージョン番号→HL (L=小数点以下、H=整数部。整数部が0なら0.9として扱う)
+	.NDPOFF			equ 0xC04B	;; ドライバ終了 (タイマ割り込みフックからドライバを切り離して発音停止)
+	.SETHF			equ 0xC04E	;;  タイマ割り込みフック接続フラグ←A
+	.KSSPLY			equ 0xC051	;; 退避したH.TIMIをRETで潰して演奏開始 (KSSプレイヤー用)
 	; workarea
-	.TRACK_A	equ .NDPINI + 28*3 + 61*1 + 31
-	.TRACK_B	equ .NDPINI + 28*3 + 61*2 + 31
-	.TRACK_C	equ .NDPINI + 28*3 + 61*3 + 31
-	.TRACK_RTH	equ .NDPINI + 28*3 + 61*0 + 4
+	.TRACK_A		equ .NDPINI + 28*3 + 61*1 + 31
+	.TRACK_B		equ .NDPINI + 28*3 + 61*2 + 31
+	.TRACK_C		equ .NDPINI + 28*3 + 61*3 + 31
+	.TRACK_RTH		equ .NDPINI + 28*3 + 61*0 + 4
 
 ;----------------------------------------------------------------------------
 org 0x4000
@@ -208,6 +209,20 @@ CCMDCNT_INC:
 CCMDCNT:
 		db		0x00
 
+
+;----------------------------------------------------------------------------
+; 出力音量の設定
+; @param A volume 15(最小音) ～ 0(最大音), 16以上は15とみなす
+CHIP_SET_EVOL:
+	.begin
+		cp		16
+		jr		c, .@@F			; 15以下なら.@@へ
+		ld		A, 0x0f
+	.@@
+		ld		C, HARZIO.OUTVOL
+		out		(C), A
+		ret
+
 ;----------------------------------------------------------------------------
 ; MGS
 ;----------------------------------------------------------------------------
@@ -261,8 +276,11 @@ MGS_ACTCMD:
 		ld		B, 0xff
 		ld		HL, 0xffff
 		call	MGS.PLYST
-		ld		A, (MGS_WORK.ui_volume)		; ユーザー操作による音量値を再設定
+		ld		A, (MGS_WORK.ui_volume)		; 電子VOLにユーザー操作による音量値を設定
 		call	MGS_SET_VOLUME
+		xor		A							; ドライバには最大音量をセットする
+		ld		B, A
+		call	MGS.MSVST
 		call	PLAYTIME_RESET				; 再生タイム値をリセット
 		ld		A, 0x01
 		ld		(MGS_SYSINFO.playsts), A
@@ -287,6 +305,7 @@ MGS_ACTCMD:
 		ret		nz
 		ld		A, 0x02						; Start fadeout.
 		ld		(MGS_SYSINFO.playsts), A
+		xor		A
 		ld		(MGS_WORK.fo_step), A
 		call	CCMDCNT_INC
 		ret
@@ -295,7 +314,7 @@ MGS_ACTCMD:
 		dec		A
 		ret		nz
 		in		A, (HARZIO.CCMD_RD_DATA)
-		ld		(NDP_WORK.ui_volume), A
+		ld		(MGS_WORK.ui_volume), A
 		call	MGS_SET_VOLUME
 		call	CCMDCNT_INC
 		ret
@@ -332,7 +351,7 @@ MGS_FADEOUT:
 		call	MGS_SET_VOLUME
 		;
 		ld		A, (MGS_WORK.fo_volume)
-		cp		15
+		cp		20				; 本来15で良いが曲の合間に無音状態を入れるために4多い20にしている
 		jr		nz, .finish
 		call	MGS.INITM
 		;call	PLAYTIME_RESET	; リセットしないこととした
@@ -344,8 +363,7 @@ MGS_FADEOUT:
 MGS_SET_VOLUME:
 	.begin
 		ld		(MGS_WORK.fo_volume), A
-		ld		B, 0
-		call	MGS.MSVST
+		call	CHIP_SET_EVOL
 		ret
 
 MGS_SYSINFO:
@@ -464,8 +482,11 @@ KINR5_ACTCMD:
 		ld		HL, 0x8007		; 格納場所
 		ld		A, 0x00			; 0=無限ループ
 		call	KINR5.MPLAY2
-		ld		A, (MGS_WORK.ui_volume)		; ユーザー操作による音量値を再設定
+		ld		A, (KINR5_WORK.ui_volume)	; 電子VOLにユーザー操作による音量値を設定
 		call	KINR5_SET_VOLUME
+		xor		A							; ドライバには最大音量をセットする
+		ld		B, A
+		call	KINR5.ALLMVO
 		call	PLAYTIME_RESET	; 再生タイム値をリセット
 		ld		A, 0x01
 		ld		(KINR5_SYSINFO.playsts), A
@@ -490,6 +511,7 @@ KINR5_ACTCMD:
 		ret		nz
 		ld		A, 0x02						; Start fadeout.
 		ld		(KINR5_SYSINFO.playsts), A
+		xor		A
 		ld		(KINR5_WORK.fo_step), A
 		call	CCMDCNT_INC
 		ret
@@ -498,7 +520,7 @@ KINR5_ACTCMD:
 		dec		A
 		ret		nz
 		in		A, (HARZIO.CCMD_RD_DATA)
-		ld		(NDP_WORK.ui_volume), A
+		ld		(KINR5_WORK.ui_volume), A
 		call	KINR5_SET_VOLUME
 		call	CCMDCNT_INC
 		ret
@@ -535,7 +557,7 @@ KINR5_FADEOUT:
 		call	KINR5_SET_VOLUME
 		;
 		ld		A, (KINR5_WORK.fo_volume)
-		cp		15
+		cp		20
 		jr		nz, .finish
 		call	KINR5.MSTOP
 		;call	PLAYTIME_RESET	; リセットしないこととした
@@ -547,8 +569,7 @@ KINR5_FADEOUT:
 KINR5_SET_VOLUME:
 	.begin
 		ld		(KINR5_WORK.fo_volume), A
-		ld		B, 0
-		call	KINR5.ALLMVO
+		call	CHIP_SET_EVOL
 		ret
 
 KINR5_SYSINFO:
@@ -660,8 +681,10 @@ NDP_ACTCMD:
 		ld		DE, NDP.MUSDATA				; 曲データ先頭アドレスをセット
 		call	NDP.ADRSET
 		call	NDP.MSTART
-		ld		A, (NDP_WORK.ui_volume)		; ユーザー操作による音量値を再設定
+		ld		A, (NDP_WORK.ui_volume)		; 電子VOLにユーザー操作による音量値を設定
 		call	NDP_SET_VOLUME
+		xor		A							; ドライバには最大音量をセットする
+		call	NDP.MVSET
 		call	PLAYTIME_RESET				; 再生タイム値をリセット
 		ld		A, 0x01
 		ld		(NDP_SYSINFO.playsts), A
@@ -686,6 +709,7 @@ NDP_ACTCMD:
 		ret		nz
 		ld		A, 0x02						; Start fadeout.
 		ld		(NDP_SYSINFO.playsts), A
+		xor		A
 		ld		(NDP_WORK.fo_step), A
 		call	CCMDCNT_INC
 		ret
@@ -731,9 +755,10 @@ NDP_FADEOUT:
 		call	NDP_SET_VOLUME
 		;
 		ld		A, (NDP_WORK.fo_volume)
-		cp		15
+		cp		20
 		jr		nz, .finish
 		call	NDP.MSTOP
+		;call	PLAYTIME_RESET	; リセットしないこととした
 		xor		A
 		ld		(NDP_SYSINFO.playsts), A
 	.finish
@@ -742,7 +767,7 @@ NDP_FADEOUT:
 NDP_SET_VOLUME:
 	.begin
 		ld		(NDP_WORK.fo_volume), A
-		call	NDP.MVSET
+		call	CHIP_SET_EVOL
 		ret
 
 NDP_SYSINFO:

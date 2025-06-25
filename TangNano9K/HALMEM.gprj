@@ -16,6 +16,7 @@
         <File path="src/IKAOPLL/IKAOPLL_modules/IKAOPLL_reg.v" type="file.verilog" enable="1"/>
         <File path="src/IKAOPLL/IKAOPLL_modules/IKAOPLL_timinggen.v" type="file.verilog" enable="1"/>
         <File path="src/IKASCC/IKASCC.v" type="file.verilog" enable="1"/>
+        <File path="src/IKASCC/IKASCC_defines.vh" type="file.verilog" enable="1"/>
         <File path="src/IKASCC/IKASCC_modules/IKASCC_player_a.v" type="file.verilog" enable="1"/>
         <File path="src/IKASCC/IKASCC_modules/IKASCC_player_s.v" type="file.verilog" enable="1"/>
         <File path="src/IKASCC/IKASCC_modules/IKASCC_primitives.v" type="file.verilog" enable="1"/>
@@ -24,6 +25,7 @@
         <File path="src/TXWKRAM.sv" type="file.verilog" enable="1"/>
         <File path="src/gowin_clkdiv/gowin_clkdiv_35.v" type="file.verilog" enable="1"/>
         <File path="src/gowin_clkdiv_4/gowin_clkdiv_4.v" type="file.verilog" enable="1"/>
+        <File path="src/gowin_dqce/gowin_dqce.v" type="file.verilog" enable="1"/>
         <File path="src/gowin_osc/gowin_osc.v" type="file.verilog" enable="1"/>
         <File path="src/gowin_rpll_x20p/gowin_rpll_x20p.v" type="file.verilog" enable="1"/>
         <File path="src/gowin_rpllxv2/gowin_rpllxv2.v" type="file.verilog" enable="1"/>

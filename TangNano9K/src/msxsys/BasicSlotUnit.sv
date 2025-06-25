@@ -17,7 +17,9 @@ module BasicSlotUnit
 	//
 	input	wire [4:0]			i_masicn_IKASCC,
 	//
+	output	wire [7:0]			o_MIXVOL,
 	output	wire [5:0]			o_LED
+
 );
 
 assign bus_Slot.busy = mem_busy|io_busy;
@@ -75,7 +77,7 @@ always_ff @(posedge i_CLK) begin
 end
 
 // ==========================================================================
-// TxWorkRam (I/O 0x02, 0x03)
+// TxWorkRam (I/O 0x02-0x03)
 // ==========================================================================
 wire io_acc_txworkram_wr = ((bus_Slot.a[7:0]==8'h02)&&bus_Slot.iorq&&bus_Slot.wr);
 wire io_acc_txworkram_ed = ((bus_Slot.a[7:0]==8'h03)&&bus_Slot.iorq&&bus_Slot.wr);
@@ -142,6 +144,26 @@ always_ff@(posedge i_CLK ) begin
 	end
 end
 
+// ==========================================================================
+// CCMD_VOL (I/O 0x06)
+// ==========================================================================
+wire io_acc_ccmd_vol = ((bus_Slot.a[7:0]==8'h06)&&bus_Slot.iorq);
+assign bus_Slot.read_d = (io_acc_ccmd_vol && bus_Slot.rd) ? ff_ccmd_vol : 8'bz;
+reg [7:0] ff_ccmd_vol;
+reg [1:0] ff_ccmd_vol_wr_sht;
+assign o_MIXVOL = ff_ccmd_vol;
+
+always_ff@(posedge i_CLK ) begin
+ 	if( !i_RST_n ) begin
+		ff_ccmd_vol <= 8'd15;
+	end
+	else begin
+		ff_ccmd_vol_wr_sht <= {ff_ccmd_vol_wr_sht[0], bus_Slot.wr};
+		if( io_acc_ccmd_vol && ff_ccmd_vol_wr_sht == 2'b01 ) begin
+			ff_ccmd_vol <= bus_Slot.write_d;
+		end
+	end
+end
 
 // ==========================================================================
 // Timre RD (I/O 0xE6,0xE7)
@@ -255,8 +277,10 @@ reg ff_OPLL_CS;
 reg [5:0] ff_OPLL_WR_cnt;
 reg ff_OPLL_WR;
 reg [1:0] w_OPLL_CS_sft;
+reg opll_clk;
 
 always_ff@(posedge i_CLK ) begin
+	opll_clk <= bus_Slot.clock;
 	if( !i_RST_n ) begin
 		ff_OPLL_WR_cnt <= 6'd0;
 		ff_OPLL_WR <= `LOW;
@@ -351,7 +375,7 @@ reg		  	scc_wr_delay_on;
 reg	[4:0]	z80_f_cnt;
 wire		w_IKASCC_DB_OE;
 
-assign bus_Slot.read_d	= (w_IKASCC_DB_OE) ? w_IKASCC_RD_DATA: 8'bz;
+assign bus_Slot.read_d	= (sel_s1_p2&&w_IKASCC_DB_OE) ? w_IKASCC_RD_DATA: 8'bz;
 
 always_ff@(posedge i_CLK ) begin
 	if( !i_RST_n ) begin
@@ -457,13 +481,12 @@ end
 // ==========================================================================
 wire [13:0]	addrInPage = bus_Slot.a[13:0];
 wire [1:0]	pgNo = bus_Slot.a[15:14];
-wire sel_s3_p0 = (bus_Slot.merq && RegBaseSlot[0] == 2'd3 && pgNo == 0 );
-wire sel_s3_p1 = (bus_Slot.merq && RegBaseSlot[1] == 2'd3 && pgNo == 1 );
-wire sel_s3_p2 = (bus_Slot.merq && RegBaseSlot[2] == 2'd3 && pgNo == 2 );
-wire sel_s3_p3 = (bus_Slot.merq && RegBaseSlot[3] == 2'd3 && pgNo == 3 );
-//
-wire sel_s1_p1 = (bus_Slot.merq && RegBaseSlot[1] == 2'd1 && pgNo == 1 );	// FM-BIOS
-wire sel_s1_p2 = (bus_Slot.merq && RegBaseSlot[2] == 2'd1 && pgNo == 2 );	// IKASCC
+wire sel_s3_p0 = (bus_Slot.merq && RegBaseSlot[0] == 2'd3 && pgNo == 2'd0 );
+wire sel_s3_p1 = (bus_Slot.merq && RegBaseSlot[1] == 2'd3 && pgNo == 2'd1 );
+wire sel_s3_p2 = (bus_Slot.merq && RegBaseSlot[2] == 2'd3 && pgNo == 2'd2 );
+wire sel_s3_p3 = (bus_Slot.merq && RegBaseSlot[3] == 2'd3 && pgNo == 2'd3 );
+wire sel_s1_p1 = (bus_Slot.merq && RegBaseSlot[1] == 2'd1 && pgNo == 2'd1 );	// FM-BIOS
+wire sel_s1_p2 = (bus_Slot.merq && RegBaseSlot[2] == 2'd1 && pgNo == 2'd2 );	// IKASCC
 //
 wire busy_s3_p0;
 wire busy_s3_p1;

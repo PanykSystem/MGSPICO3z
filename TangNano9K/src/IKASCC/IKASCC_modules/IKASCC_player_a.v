@@ -1,4 +1,4 @@
-`include "IKASCC_defines.vh"
+`include "../IKASCC_defines.vh"
 
 module IKASCC_player_a #(
     parameter DELAY_LENGTH = 1
