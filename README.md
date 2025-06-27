@@ -72,3 +72,13 @@ Programmed by naruto2413 https://ndp.squares.net/web/
 |2025/03/26|mgspico3z_firmware_v3.1.0|●機能追加:<br>TV80のクロックを3.58MHzと7.16MHzの二つから選べるようにしました。（[●]ボタンを押しながら電源ONでセッティング画面が起動します。セッティング画面から抜けるには[●]ボタンを長押しします。）<br>●bugfix:<br>演奏が終了し次の曲を再生するときまれに再生しないことがある不具合を修正しました。|
 |2025/03/02|mgspico3z_firmware_v3.00|初版|
 
+## 各MGSPICOでサポートしている楽曲データ形式
+MGSPICO3zのみ、tgf、VGMデータには対応できていません。 
+|Model|MGS|MuSICA|NDP|tgf|VGM|
+|:--|:-:|:-:|:-:|:-:|:-:|
+|MGSPICO|✓|✓|✓|✓|✓|
+|MGSPICO 2|✓|✓|✓|✓|✓|
+|MGSPICO 3|✓|✓|-|✓|✓|
+|MGSPICO 3z|✓|✓|✓|-|-|
+
+
