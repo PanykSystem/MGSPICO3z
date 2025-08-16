@@ -35,7 +35,7 @@
 
 // -----------------------------------------------------------------------------
 // VERSION
-static const char *pFIRMVERSION = "v3.3.0";
+static const char *pFIRMVERSION = "v3.3.1";
 
 // -----------------------------------------------------------------------------
 static char tempWorkPath[255+1];
@@ -1120,15 +1120,19 @@ static void tasks(
 	if( bUpdate ){
 		static uint8_t oldLoopCnt = 0;
 		//printf( "PLAYFG=%d\n", pWkram->info.mgs.PLAYFG);
-		if( pIgnoringTim->IsTimeOut() && pWkram->info.mgs.PLAYFG == 0 ){
-			// 再生が終了したらEVENT_ENDMUSICを発報する（ただし再生開始直後から100msが経過するまでは何もしない）
-			pIgnoringTim->Cancel();
-			g_Events.Post(EVENT_ENDMUSIC);
-		}
-		if( oldLoopCnt != pWkram->info.mgs.LOOPCT ){
+
+		// 再生直後のIGNORING_TIME[ms]期間は無視する
+		if( pIgnoringTim->IsTimeOut() ) {
+			// 再生が終了したらEVENT_ENDMUSICを発報する
+			if( pWkram->info.mgs.PLAYFG == 0 ){
+				pIgnoringTim->Cancel();
+				g_Events.Post(EVENT_ENDMUSIC);
+			}
 			// 再生回数が変化したらEVENT_LOOPCTを発報する
-			oldLoopCnt = pWkram->info.mgs.LOOPCT;
-			g_Events.Post(EVENT_LOOPCT, (int)pWkram->info.mgs.LOOPCT);
+			else if( oldLoopCnt != pWkram->info.mgs.LOOPCT ){
+				oldLoopCnt = pWkram->info.mgs.LOOPCT;
+				g_Events.Post(EVENT_LOOPCT, (int)pWkram->info.mgs.LOOPCT);
+			}
 		}
 		// CPU負荷を可視化するためのメインループ一周の時間を記録する
 		g_TimeLog.Set(pWkram->loop_time);

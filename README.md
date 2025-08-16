@@ -1,5 +1,5 @@
 # MGSPICO3z 
-2025/08/13 harumakkin
+2025/08/16 harumakkin
 
 ![mgspico3-01](docs/pics/mgspico3.png)</br>**fig.1 MGSPICO3**
 
@@ -66,6 +66,7 @@ Programmed by naruto2413 https://ndp.squares.net/web/
 ## 修正履歴
 |date|firmware|note|
 |:--|:--|:--|
+|2025/08/16|mgspico3z_firmware_v3.3.1|●不具合修正:<br>loop cnt.1 設定の時に、２番目に再生された曲がすぐにフェードアウトしてしまう不具合を修正した|
 |2025/08/13|mgspico3z_firmware_v3.3.0|●機能修正:・SDカード内のサブディレクトリに対応した<br>・SETTINGで１曲のloop回数を、無限、1、2、3の４種類から選択できるようにした<br>・SETTINGの保存ファイル名を変更した。MGSPICO.DAT　→　MGSPIC3Z.DAT<br>・そのほかリファクタリングやFPGAコードの改良<br>|
 |2025/06/26|mgspico3z_firmware_v3.2.2|●機能修正:<br>・曲切替時の、フェードアウトの音量変更を音源ドライバのボリューム設定ではなく、MIX回路内で行うようにした<br>・他、軽微な修正|
 |2025/05/31|mgspico3z_firmware_v3.2.1|●不具合修正:<br>NDP楽曲でループする曲を自動終了できなかったのを改善した|
