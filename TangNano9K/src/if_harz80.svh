@@ -7,31 +7,27 @@
 */
 typedef enum logic [7:0]
 {
-	TXCMD_NOP			= 8'h00,
+	TXCMD_NOP				= 8'h00,
 	// PSRAM直接アクセス(4MB)
-	TXCMD_PSRAM_WR_8	= 8'h01,
-	TXCMD_PSRAM_RD_8	= 8'h02,
+	TXCMD_PSRAM_WR_8		= 8'h01,
+	TXCMD_PSRAM_RD_8		= 8'h02,
 	// HalzMMUを介したメモリアクセス(64KB)
-	TXCMD_Z80MEM_WR_1	= 8'h03,
-	TXCMD_Z80MEM_RD_1	= 8'h04,
-	// TXCMD_Z80MEM_WR_2	= 8'h05,
-	// TXCMD_Z80MEM_RD_2	= 8'h06,
-	// TXCMD_Z80MEM_WR_4	= 8'h07,
-	// TXCMD_Z80MEM_RD_4	= 8'h08,
-	TXCMD_Z80IO_WR		= 8'h09,
-	TXCMD_Z80IO_RD		= 8'h0a,
+	TXCMD_Z80MEM_WR_1		= 8'h03,
+	TXCMD_Z80MEM_RD_1		= 8'h04,
+	TXCMD_Z80IO_WR			= 8'h09,
+	TXCMD_Z80IO_RD			= 8'h0a,
 	// Halzの制御
-	TXCMD_HARZ_RESET	= 8'h10,
-	TXCMD_HARZ_RUN		= 8'h11,
-	TXCMD_HARZ_STOP		= 8'h12,
-	TXCMD_HARZ_RESUME	= 8'h13,
+	TXCMD_HARZ_RESET		= 8'h10,
+	TXCMD_HARZ_RUN			= 8'h11,
+	TXCMD_HARZ_STOP			= 8'h12,
+	TXCMD_HARZ_RESUME		= 8'h13,
 	//
 	TXCMD_HARZ_GETSTS		= 8'h14,		// 動作状態を返す
 	TXCMD_HARZ_SETCMD		= 8'h15,
 	TXCMD_HARZ_CLKMODE		= 8'h16,
 	TXCMD_HARZ_SETCMDDATA	= 8'h17,
 	//
-	TXCMD_HARZ_EOT		= 8'hff
+	TXCMD_HARZ_EOT			= 8'hff
 } txcmd_t;
 
 typedef enum logic [3:0]
@@ -171,7 +167,7 @@ interface z80bus_if;
 endinterface
 
 interface soundbus_if;
-	logic signed [13:0]	PSG;
+	logic signed [15:0]	PSG;
 	logic signed [15:0]	OPLL;
 	logic signed [10:0]	IKASCC;		// IKASCC by イカビク(@RCAVictorCo)
 	logic signed [10:0]	WTS;		// WaveTableSound by HRA!(@thara1129)

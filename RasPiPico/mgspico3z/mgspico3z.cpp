@@ -35,12 +35,13 @@
 
 // -----------------------------------------------------------------------------
 // VERSION
-static const char *pFIRMVERSION = "v3.2.2";
+static const char *pFIRMVERSION = "v3.3.0";
 
 // -----------------------------------------------------------------------------
 static char tempWorkPath[255+1];
 static const int  Z80_PAGE_SIZE = 16*1024;
 static uint8_t g_WorkRam[Z80_PAGE_SIZE];
+static char g_CurDir[LEN_FILE_PATH_MAX+1] = "\\";	// カレントディレクトリ
 
 // -----------------------------------------------------------------------------
 const uint32_t	ADDR_PLAYER 	= 0x4000;	// player
@@ -294,10 +295,12 @@ static bool uploadNDP(CHarz80Ctrl &harz)
 	return false;
 }
 
-static bool uploadMusicFileData(CHarz80Ctrl &harz, const MusFiles &files, const int fileNo)
+static bool uploadMusicFileData(
+	CHarz80Ctrl &harz,
+	const char *pCurDir, const MusFiles &files, const int fileNo)
 {
-	auto *pFile = files.GetFileSpec(fileNo);
-	sprintf(tempWorkPath, "%s", pFile->name);
+	auto *pFile = files.GetItemSpec(fileNo);
+	sprintf(tempWorkPath, "%s\\%s", pCurDir, pFile->name);
 
 	uint8_t *p = g_WorkRam;
 	UINT readSize = 0;
@@ -406,9 +409,11 @@ static void init()
 
 #ifdef FOR_DEBUG
     // UART1の初期化方法
-	// stdio_init_all(); は、UART0を使用するときに呼び出す。
-	// UART1 の場合はstdio_uart_init_fullを使用し、使用GPIOピンも指定する
-	// また、CMakeLists.txt 内で、pico_enable_stdio_uart(${BinName} 1) を記述すること
+	// UART0を使用する場合は、
+	//		stdio_init_all();を呼び出すだけでよい
+	// UART1を使用する場合は、
+	//		stdio_uart_init_fullを使用し、使用GPIOピンも指定する
+	// 		また、CMakeLists.txt 内で、pico_enable_stdio_uart(${BinName} 1) を記述すること
 	stdio_uart_init_full(
 		PICO_UART1_DEV, CFG_BOARD_UART_BAUDRATE, PICO_UART1_TX, PICO_UART1_RX);
 	// for first call printf.
@@ -440,19 +445,21 @@ static void init()
 
 static void listupMusicFiles(MusFiles *pFiles)
 {
+	const char *pWild = nullptr;
 	switch(pFiles->GetMusicType())
 	{
-		case MgspicoSettings::MUSICDATA::MGS:
-			pFiles->ReadFileNames("*.MGS");
-			break;
-		case MgspicoSettings::MUSICDATA::KIN5:
-			pFiles->ReadFileNames("*.BGM");
-			break;
-		case MgspicoSettings::MUSICDATA::NDP:
-			pFiles->ReadFileNames("*.NDP");
-			break;
-		default:
-			break;
+		case MgspicoSettings::MUSICDATA::MGS:	pWild = "*.MGS";	break;
+		case MgspicoSettings::MUSICDATA::KIN5:	pWild = "*.BGM";	break;
+		case MgspicoSettings::MUSICDATA::NDP:	pWild = "*.NDP";	break;
+		case MgspicoSettings::MUSICDATA::VGM:	pWild = "*.VGM";	break;
+		case MgspicoSettings::MUSICDATA::TGF:	pWild = "*.TGF";	break;
+		default:													break;
+	}
+	if( pWild == nullptr ) {
+		pFiles->ClearList();
+	}
+	else{
+		pFiles->ReadFileNames(pWild, g_CurDir);
 	}
 	return;
 }
@@ -485,7 +492,8 @@ enum EVENT_TYPE
 	EVENT_REQ_STT_DOWN_CURSOR,
 	EVENT_REQ_STT_UP_CURSOR,
 	EVENT_REQ_STT_APPLY,
-	EVENT_REQ_SET_VOLUME,				// 
+	EVENT_REQ_SET_VOLUME,
+	EVENT_REQ_CHDIR,
 };
 
 struct EVENT_DT
@@ -624,10 +632,15 @@ static bool displayPlayFileName(
 		// ファイル名リスト
 		for( int t = 0; t < 3; ++t) {
 			int no = pageTopNo + t;
-			auto *pF = files.GetFileSpec(no);
+			auto *pF = files.GetItemSpec(no);
 			if( pF == nullptr )
 				continue;
-			sprintf(tempWorkPath, "%03d:%-*s", no, LEN_FILE_NAME, pF->name);
+			if( pF->no == 0 ){
+				sprintf(tempWorkPath, "/%-*s", LEN_FILE_NAME, pF->name);
+			}
+			else{
+				sprintf(tempWorkPath, "%03d:%-*s", pF->no, LEN_FILE_NAME, pF->name);
+			}
 			disp.Strings8x16(0, (1+t)*16, tempWorkPath, (seleFileNo==no)?true:false);
 		}
 	}
@@ -658,8 +671,29 @@ static bool changeCurPos(
 	return (old != *pCurNo);
 }
 
+static bool nextFile(
+	MusFiles &files, int *pPageTopNo, int *pCurNo)
+{
+	const int numFiles = files.GetNumFiles();
+	if( numFiles <= 1 )
+		return false;
+
+	bool bRetc = false;
+	const int numItems = files.GetNumItems();
+	for( int t = 0; t < numItems; ++t){
+		changeCurPos(numFiles, pPageTopNo, pCurNo, +1, true);
+		if( files.GetItemSpec(*pCurNo)->no != 0 ){
+			bRetc = true;
+			break;
+		}
+	}
+	return bRetc;
+}
+
+
 static bool playMusic(
-	CSsd1306I2c &disp, CHarz80Ctrl &harz, MusFiles &files, const int selectFileNo)
+	CSsd1306I2c &disp, CHarz80Ctrl &harz, const char *pCurDir,
+	MusFiles &files, const int selectFileNo)
 {
 	harz.SetCCmd(harz80::CCMD_STOP);
 	// NOTE: 
@@ -673,7 +707,7 @@ static bool playMusic(
 	harz.SetBusak(0);
 	busy_wait_ms(10);
 	harz.OutputIo(0xA8, 0b11111111);
-	bool bRetc = uploadMusicFileData(harz, files, selectFileNo);
+	bool bRetc = uploadMusicFileData(harz, pCurDir, files, selectFileNo);
 	if( bRetc ){
 		harz.SetBusak(1);
 	}
@@ -712,6 +746,7 @@ static bool downloadStatus(CHarz80Ctrl &harz, harz80::WRWKRAM *pWk)
 	if( oldCnt != pWk->update_counter )	{
 		oldCnt = pWk->update_counter;
 		bUpdate = true;
+#define FOR_DEBUG_PRINT_STATUS
 #ifdef FOR_DEBUG_PRINT_STATUS
 		static uint16_t index = 0;
 		if( 160 < pWk->loop_time )
@@ -826,8 +861,8 @@ static bool displayPlayTime(
 	}
 	if( bUpdated && !files.IsEmpty() ){
 		const int index = playingFileNo;
-		auto *pF = files.GetFileSpec(index);
-		sprintf(tempWorkPath, "%03d:%*s", index, LEN_FILE_NAME, pF->name);
+		auto *pF = files.GetItemSpec(index);
+		sprintf(tempWorkPath, "%03d:%*s", pF->no, LEN_FILE_NAME, pF->name);
 		disp.Strings8x16(0, 1*16, tempWorkPath, false);
 	}
 	return bUpdated;
@@ -1095,18 +1130,25 @@ static void tasks(
 			oldLoopCnt = pWkram->info.mgs.LOOPCT;
 			g_Events.Post(EVENT_LOOPCT, (int)pWkram->info.mgs.LOOPCT);
 		}
-		//
+		// CPU負荷を可視化するためのメインループ一周の時間を記録する
 		g_TimeLog.Set(pWkram->loop_time);
 	}
 	return;
 }
 
-inline int getRandPlayNo(const int num)
+static bool getRandPlayNo(const MusFiles &files, int *pNewNo)
 {
-	return (get_rand_32() % num) + 1;
+	const int num = files.GetNumItems();
+	for(int t = 0; t < num; ++t){
+		const int cno = (get_rand_32() % num) + 1;
+		const auto *pF = files.GetItemSpec(cno);
+		if( pF != nullptr && pF->no != 0 ){
+			*pNewNo = cno;
+			return true;
+		}
+	}
+	return false;
 }
-
-enum SHIFTKEY {SHIFT_NONE, SHIFT_APPLY, SHIFT_DOWN, SHIFT_UP};
 
 static void dispPlayer(CSsd1306I2c &disp, CHarz80Ctrl &harz, MusFiles &files)
 {
@@ -1116,7 +1158,7 @@ static void dispPlayer(CSsd1306I2c &disp, CHarz80Ctrl &harz, MusFiles &files)
 	bool bDispLoadGraph = false;
 
 	int topFileNo = 1;
-	int curNo = (bRandomPlay) ? getRandPlayNo(files.GetNumFiles()) : 1;
+	int curNo = 1;
 	int frameCnt = 0;
 	int fps = 0;
 
@@ -1131,11 +1173,22 @@ static void dispPlayer(CSsd1306I2c &disp, CHarz80Ctrl &harz, MusFiles &files)
 	static const uint32_t IGNORING_TIME = 100; // ms
 	CMsCount ignoringTim;
 
+	enum SHIFTKEY {SHIFT_NONE, SHIFT_APPLY, SHIFT_DOWN, SHIFT_UP};
 	SHIFTKEY shift = SHIFT_NONE;
 
+	if( bRandomPlay)
+		getRandPlayNo(files, &curNo);
+
+	// 先頭のファイルの自動再生
 	if( g_Setting.GetAutoRun() ){
-		g_Events.Post(EVENT_REQ_PLAY, curNo);
+		int topNo = (bRandomPlay) ? curNo : files.GetTopFileNo();
+		if( topNo != 0 ){
+			curNo = topNo;
+			g_Events.Post(EVENT_REQ_PLAY, curNo);
+		}
 	}
+
+
 
 	ledLamp(0);
 
@@ -1181,7 +1234,13 @@ static void dispPlayer(CSsd1306I2c &disp, CHarz80Ctrl &harz, MusFiles &files)
 										g_Events.Post(EVENT_REQ_STOP);
 									}
 									else {
-										g_Events.Post(EVENT_REQ_PLAY, curNo);
+										const char *pDir = files.GetDirName(curNo);
+										if( pDir != nullptr ){
+											g_Events.Post(EVENT_REQ_CHDIR, curNo);
+										}
+										else {
+											g_Events.Post(EVENT_REQ_PLAY, curNo);
+										}
 									}
 								}
 								shift = SHIFT_NONE;
@@ -1222,7 +1281,11 @@ static void dispPlayer(CSsd1306I2c &disp, CHarz80Ctrl &harz, MusFiles &files)
 				// 再生開始を指示されたので再生を実行する（dt.Value=曲番号）
 				case EVENT_REQ_PLAY:
 				{
-					if( playMusic(disp, harz, files, dt.Value) ){
+					const int no = dt.Value;
+					const char *pDir = files.GetDirName(no);
+					if( pDir != nullptr )
+						break;
+					if( playMusic(disp, harz, g_CurDir, files, no) ){
 						ignoringTim.Reset(IGNORING_TIME);
 						playNo = dt.Value;
 						dispListTim.Cancel();
@@ -1239,7 +1302,7 @@ static void dispPlayer(CSsd1306I2c &disp, CHarz80Ctrl &harz, MusFiles &files)
 				// カーソルを一行下へ移動するよう指示された
 				case EVENT_REQ_FLIST_DOWN_CURSOR:
 				{
-					changeCurPos(files.GetNumFiles(), &topFileNo, &curNo, +1, true);
+					changeCurPos(files.GetNumItems(), &topFileNo, &curNo, +1, true);
 					// ファイルリストを1秒間は表示する
 					dispListTim.Reset(DISPLIST_TIME);
 					break;
@@ -1247,16 +1310,17 @@ static void dispPlayer(CSsd1306I2c &disp, CHarz80Ctrl &harz, MusFiles &files)
 				// カーソルを一行上へ移動するよう指示された
 				case EVENT_REQ_FLIST_UP_CURSOR:
 				{
-					changeCurPos(files.GetNumFiles(), &topFileNo, &curNo, -1, true);
+					changeCurPos(files.GetNumItems(), &topFileNo, &curNo, -1, true);
 					// ファイルリストを1秒間は表示する
 					dispListTim.Reset(DISPLIST_TIME);
 					break;
 				}
-				// 演奏が周回下した（dt.Valueに回数が隠されている。演奏開始直後は0）
+				// 下した（dt.Valueに回数が隠されている。演奏開始直後は0）
 				case EVENT_LOOPCT:
 				{
-					// ２回ループしていたら、４秒フェードアウト後に演奏を停止させる
-					if( dt.Value == 2 ){
+					const int cnt = g_Setting.GetLoopCnt();
+					// cnt回ループしていたら、４秒フェードアウト後に演奏を停止させる
+					if( cnt != 0 && dt.Value == cnt ){
 						fadeoutMusic(harz);
 					}
 					break;
@@ -1264,26 +1328,56 @@ static void dispPlayer(CSsd1306I2c &disp, CHarz80Ctrl &harz, MusFiles &files)
 				// 演奏が終了した
 				case EVENT_ENDMUSIC:
 				{
-					// 次の曲を再生開始
-					if( playNo != 0 ){
+					if( playNo == 0 )
+						break;
+					const int cnt = g_Setting.GetLoopCnt();
+					if( cnt != 0 ){
+						// 次の曲を再生開始
 						if( bRandomPlay ){
 							// 次の曲を乱数で決める
-							playNo = getRandPlayNo(files.GetNumFiles());
+							getRandPlayNo(files, &playNo);
 						}
 						else {
-							changeCurPos(files.GetNumFiles(), &topFileNo, &playNo, +1, true);
+							nextFile(files, &topFileNo, &playNo);
 						}
-						if( playMusic(disp, harz, files, playNo) ){
-							ignoringTim.Reset(IGNORING_TIME);
-							curNo = playNo;
-							dispListTim.Cancel();
-						}
+					}
+					if( playMusic(disp, harz, g_CurDir, files, playNo) ){
+						ignoringTim.Reset(IGNORING_TIME);
+						curNo = playNo;
+						dispListTim.Cancel();
 					}
 					break;
 				}
 				case EVENT_REQ_SET_VOLUME:
 				{
 					setVolumeMusic(harz, g_Works.Volume);
+					break;
+				}
+				case EVENT_REQ_CHDIR:
+				{
+					// ディレクトリを変更し、ファイルリストを更新する
+					// NOTE: 指定ディレクトリが無い場合は、ルートディレクトリに移動する
+					const char *pDirName = files.GetDirName(dt.Value);
+					if( pDirName != nullptr ){
+						// 変更先のディレク織パスを作成する -> g_CurDir
+						if( strcmp(pDirName, "..") == 0 ){
+							MusFiles::DeleteTermPath(g_CurDir);
+						}
+						else{
+							sprintf(tempWorkPath, "%s\\%s", g_CurDir, pDirName);
+							strcpy(g_CurDir, tempWorkPath);
+						}
+						// パスが存在しない場合、ルートディレクトリとする
+						if( !MusFiles::IsExistDir(g_CurDir) )
+							strcpy(g_CurDir, "\\");
+						// ファイルリストを更新する
+						listupMusicFiles(&files);
+						topFileNo = 1;
+						curNo = 1;
+						dispListTim.Reset(DISPLIST_TIME);
+						// sd アクセス後は表示器と共用しているI2Cを再設定すること
+						disp.ResetI2C();
+					}
 					break;
 				}
 				default:

@@ -6,33 +6,45 @@
 static const int LEN_FILE_SPEC = 8;
 static const int LEN_FILE_EXT = 3;
 static const int LEN_FILE_NAME = LEN_FILE_SPEC+1+LEN_FILE_EXT;
-
+static const int LEN_FILE_PATH_MAX = 255;
 
 class MusFiles
 {
 public:
 	struct FILESPEC{
-		char name[LEN_FILE_NAME+1];
+		uint16_t no;					// ファイル番号(0=directory, 1=1st file, ...)
+		char name[LEN_FILE_NAME+1];		// ファイル名（拡張子込み）
 	};
 
 private:
-	static const int MAX_FILES = 1000;
+	static const int MAX_FILEITEMS = 1000;
 	MgspicoSettings::MUSICDATA	m_Type;
+	int m_NumItems;
 	int m_NumFiles;
-	FILESPEC m_Files[MAX_FILES];
+	FILESPEC m_Files[MAX_FILEITEMS];
 
 public:
 	MusFiles();
 	virtual ~MusFiles();
 
 private:
-	void listupFiles(FILESPEC *pList, int *pNum, const char *pWild);
+	void listupDirs(FILESPEC *pList, int *pNumItems, const char *pDir = "\\");
+	void listupFiles(FILESPEC *pList, int *pNumItems, int *pNumFiles, const char *pWild, const char *pDir);
+public:
+	static void DeleteTermPath(char *pPath);
+	static bool IsExistDir(const char *pDir);
+	static bool IsExistFile(const char *pFile);
 
 public:
-	void ReadFileNames(const char *pWild);
+	void ClearList();
+	void ReadFileNames(const char *pWild, const char *pCurDir);
+	int GetNumItems() const;
 	int GetNumFiles() const;
 	bool IsEmpty() const;
-	const FILESPEC *GetFileSpec(const int no) const;
+	int GetTopFileNo() const;
+	const FILESPEC *GetItemSpec(const int no) const;
+	const char* GetDirName(const int no) const;
 	void SetMusicType(const MgspicoSettings::MUSICDATA type);
 	MgspicoSettings::MUSICDATA GetMusicType() const;
+
 };

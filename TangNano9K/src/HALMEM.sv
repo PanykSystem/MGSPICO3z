@@ -87,8 +87,8 @@ wire signed [15:0]	SOUND_OPLL_x	= $signed(bus_Sound.OPLL);
 wire signed [15:0]	SOUND_SCC_y		= 16'sd0;//{bus_Sound.IKASCC, 5'b0};
 wire signed [15:0]	SOUND_PSG_y	 	= 16'sd0;//{bus_Sound.PSG, 2'b0};
 wire signed [15:0]	SOUND_OPLL_y	= 16'sd0;// bus_Sound.OPLL;
-wire signed [19:0]	SOUND_ALL_w		= $signed(SOUND_OPLL_x) + $signed(snd_IKASCC_x) + $signed(snd_PSG_x) /*+ snd_WTS_x*/;
-wire signed [26:0]	SOUND_ALL_x		= $signed(SOUND_ALL_w * Volume_Percent / 15);
+wire signed [17:0]	SOUND_ALL_w		= $signed(SOUND_OPLL_x) + $signed(snd_IKASCC_x) + $signed(snd_PSG_x) /*+ snd_WTS_x*/;
+wire signed [20:0]	SOUND_ALL_x		= $signed(SOUND_ALL_w * Volume_Percent / 15);
 wire signed [15:0]	SOUND_ALL_y		= $signed(SOUND_ALL_x[15:0]);
 
 
@@ -119,21 +119,34 @@ wire signed [15:0]	SOUND_ALL_y		= $signed(SOUND_ALL_x[15:0]);
 //-----------------------------------------------------------------------
 wire signed [15:0]	SOUND_DAC_z;
 
-MMP_cdc_L2F u_DacCdc (
-	.i_RST_n	(i_RST_n		),
-	.i_CLK_A	(i_CLK_3M579	),
-	.i_DATA_A	(SOUND_ALL_y	),
-	.i_CLK_B	(clk_17M9		),
-	.o_DATA_B	(SOUND_DAC_z	)
-);
+// MMP_cdc_L2F u_DacCdc (
+// 	.i_RST_n	(i_RST_n		),
+// 	.i_CLK_A	(i_CLK_3M579	),
+// 	.i_DATA_A	(SOUND_ALL_y	),
+// 	.i_CLK_B	(clk_17M9		),
+// 	.o_DATA_B	(SOUND_DAC_z	)
+// );
+
+// MMP_dac u_Dac (
+// 	.i_RST_n	(i_RST_n		),
+// 	.i_CLK		(clk_17M9		),
+// 	.i_SCC		(SOUND_SCC_y	),
+// 	.i_PSG		(SOUND_PSG_y	),
+// 	.i_OPLL		(SOUND_OPLL_y	),
+// 	.i_ALL		(SOUND_DAC_z	),
+// 	.o_DAC_WS	(o_DAC_WS		),
+// 	.o_DAC_CLK	(o_DAC_CLK		),
+// 	.o_DAC1_L_R	(o_DAC1_L_R		),
+// 	.o_DAC2_L_R	(o_DAC2_L_R		)
+// );
 
 MMP_dac u_Dac (
 	.i_RST_n	(i_RST_n		),
-	.i_CLK		(clk_17M9		),
+	.i_CLK		(i_CLK_3M072_DQCE),
 	.i_SCC		(SOUND_SCC_y	),
 	.i_PSG		(SOUND_PSG_y	),
 	.i_OPLL		(SOUND_OPLL_y	),
-	.i_ALL		(SOUND_DAC_z	),
+	.i_ALL		(SOUND_SPDIF_z	),
 	.o_DAC_WS	(o_DAC_WS		),
 	.o_DAC_CLK	(o_DAC_CLK		),
 	.o_DAC1_L_R	(o_DAC1_L_R		),

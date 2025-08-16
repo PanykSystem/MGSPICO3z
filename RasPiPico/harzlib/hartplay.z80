@@ -2,12 +2,12 @@
 ;@title Sound driver contoller 
 ;@auther Harumakkin
 
-MUSTYPE:
+MUSTYPE:						;; ここの定義を変更したら、SNDCTRL: ルーチン内の処理も変更する
 	.MGS			equ	0x00
 	.KINR5			equ	0x01
-	.TGF			equ	0x02
+	.NDP			equ	0x02
 	.VGM			equ	0x03
-	.NDP			equ	0x04
+	.TGF			equ	0x04
 
 HARZIO:
 	.LED6			equ	0x00	;; bit0-5 = TangNano9K On board LED, biton -> turn-on
@@ -28,6 +28,7 @@ CCMD:
 ; MGSDRV's sub-routines
 MGS:
 	.MUSDATA		equ 0x8000	;; 楽曲データの位置アドレス
+	; API
 	.SYSCK			equ	0x6010	;; 音源の有無を調べ初期化する
 	.INITM 			equ	0x6013	;; 演奏を止めてドライバを初期化する
 	.PLYST 			equ	0x6016	;; 演奏を開始する
@@ -39,6 +40,7 @@ KINR5:
 	.MUSDATA		equ 0x8000	;; 楽曲データの位置アドレス
 	.FMSLT			equ	0x6010	;; FM音源のスロット番号。無い場合は０
 	.SCCSLT			equ	0x6011	;; SCC音源のスロット番号。無い場合は０
+	; API
 	.INITAL			equ	0x6020	;; 音源の有無を調べ初期化する
 	.MPLAY2			equ	0x6026	;; 演奏を開始する
 	.MINTER			equ	0x6029	;; 割込ルーチンの先頭アドレス
@@ -93,11 +95,11 @@ SNDCTRL:
 		dec		A
 		jp		z, KINR5_PLAYER
 		dec		A
-		jr		z, SNDCTRL		; TGF
+		jp		z, NDP_PLAYER
 		dec		A
 		jr		z, SNDCTRL		; VGM
 		dec		A
-		jp		z, NDP_PLAYER
+		jr		z, SNDCTRL		; TGF
 		jr		SNDCTRL
 
 ;----------------------------------------------------------------------------

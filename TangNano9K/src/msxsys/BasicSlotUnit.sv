@@ -225,8 +225,30 @@ ym2149_audio u_Ym2149Audio (
 	.ch_b_o			(),						//  out    unsigned(11 downto 0)
 	.ch_c_o			(),						//  out    unsigned(11 downto 0)
 	.mix_audio_o	(),						//  out    unsigned(13 downto 0)
-	.pcm14s_o		(bus_Sound.PSG		)	//  out    unsigned(13 downto 0)
+	.pcm14s_o		(psg_pcm14s			)	//  out    unsigned(13 downto 0)
 );
+
+wire [13:0] psg_pcm14s;
+assign bus_Sound.PSG = $signed(psg_pcm14s);
+
+reg [6:0] clk_enable_81_counter;         // 0〜80までカウント（7ビット）
+reg en_clk_psg;
+always @(posedge bus_Slot.clock) begin
+	if (!bus_Slot.reset_n) begin
+		clk_enable_81_counter <= 7'd0;
+		en_clk_psg  <= 1'b0;
+	end else begin
+		if (clk_enable_81_counter == 7'd80) begin
+			clk_enable_81_counter  <= 7'd0;
+			en_clk_psg  <= 1'b1;
+		end else begin
+			clk_enable_81_counter <= clk_enable_81_counter + 7'd1;
+			en_clk_psg  <= 1'b0;
+		end
+	end
+end
+
+
 
 // PSG I/O アクセス時に CPUクロックで1サイクルのWAIT期間を追加する回路
 reg [6:0] psg_forbusy_cnt;
@@ -277,10 +299,8 @@ reg ff_OPLL_CS;
 reg [5:0] ff_OPLL_WR_cnt;
 reg ff_OPLL_WR;
 reg [1:0] w_OPLL_CS_sft;
-reg opll_clk;
 
 always_ff@(posedge i_CLK ) begin
-	opll_clk <= bus_Slot.clock;
 	if( !i_RST_n ) begin
 		ff_OPLL_WR_cnt <= 6'd0;
 		ff_OPLL_WR <= `LOW;
@@ -337,7 +357,7 @@ IKAOPLL #(
     .i_ACC_SIGNED_MOVOL		(opll_movol		),
     .i_ACC_SIGNED_ROVOL		(opll_rovol		),
 	.o_ACC_SIGNED_STRB		(opll_STRB		),
-	.o_ACC_SIGNED			(opll_OUT		)	// signed [15:0]
+	.o_ACC_SIGNED			(bus_Sound.OPLL		)	// signed [15:0]
 );
 
 wire opll_STRB;
@@ -352,8 +372,8 @@ always_ff @(posedge i_CLK) begin
 	end
 	else begin
 		opll_STRB_sft <= {opll_STRB_sft[0], opll_STRB};
-		if( opll_STRB_sft == 2'b01 )
-			bus_Sound.OPLL <= opll_OUT;
+		// if( opll_STRB_sft == 2'b01 )
+		// 	bus_Sound.OPLL <= opll_OUT;
 	end
 end
 
@@ -424,6 +444,13 @@ always_ff@(posedge i_CLK ) begin
 	end
 end
 
+wire w_DQCE_IKASCC_WR_n;
+Gowin_DQCE u_Gowin_DQCE_IKASCC_WR(
+	.clkin(ff_IKASCC_WR_n),
+	.clkout(w_DQCE_IKASCC_WR_n),
+	.ce(`HIGH)
+);
+
 IKASCC #(
 	.IMPL_TYPE(2),	// 2 : async,3.58MHz  
 	.RAM_BLOCK(1)
@@ -433,7 +460,7 @@ IKASCC #(
 	.i_RST_n		(bus_Slot.reset_n	),
 	.i_CS_n			(ff_IKASCC_CS_n		),
 	.i_RD_n			(ff_IKASCC_RD_n		),
-	.i_WR_n			(ff_IKASCC_WR_n		),
+	.i_WR_n			(w_DQCE_IKASCC_WR_n	),
 	.i_ABLO			(w_IKASCC_ABLO		),
 	.i_ABHI			(w_IKASCC_ABHI		),
 	.i_DB			(ff_IKASCC_WR_DATA	),

@@ -33,16 +33,20 @@ int	MgspicoSettings::GetNumItems() const
 	return NUM_MENUITEMS;
 }
 
+
+const int MgspicoSettings::NUM_MENUITEMS = 6;	// メニュー数
+
 const MgspicoSettings::ITEM *MgspicoSettings::GetItem(const int indexItem) const
 {
 	static const ITEM items[] = 
 	{
-		{"music",		5,	{"MGS", "MuSICA", "----1", "----2", "NDP", }	},
-		{"auto run",	2,	{"OFF", "ON", }									},
-		{"random",		2,	{"OFF", "ON", }									},
-		{"use.SCC",		1,	{"IKASCC", "WTS", }								},
-		{"harz clk",	2,	{"3.58MHz", "7.16MHz", }						},
-	//	{"clock",		2,	{"125MHz", "240MHz", }							},
+		{"music",		3,	{" MGS ", "MuSICA", " NDP ", " VGM ", " TGF ",}	},
+		{"loop cnt",	4,	{" * ", " 1 ", " 2 ", " 3 ", }				},
+		{"auto run",	2,	{"OFF", "ON", }							},
+		{"random",		2,	{"OFF", "ON", }							},
+		{"use.SCC",		1,	{"IKASCC", "WTS", }						},
+		{"harz clk",	2,	{"3.58MHz", "7.16MHz", }				},
+	//	{"clock",		2,	{"125MHz", "240MHz", }					},
 	};
 	return &items[indexItem];
 }
@@ -52,10 +56,11 @@ void MgspicoSettings::SetChioce(const int indexItem, const int no)
 	switch(indexItem)
 	{
 		case 0:	m_Setting.MusicType = (MUSICDATA)no;		break;
-		case 1:	m_Setting.AutoRun = no;						break;
-		case 2:	m_Setting.RandomPlay = no;					break;
-		case 3:	m_Setting.SccModule = (SCCMODULE)no;		break;
-		case 4:	m_Setting.Harz80Clock = (HARZ80CLOCK)no;	break;
+		case 1:	m_Setting.LoopCnt = (uint8_t)no;			break;
+		case 2:	m_Setting.AutoRun = no;						break;
+		case 3:	m_Setting.RandomPlay = no;					break;
+		case 4:	m_Setting.SccModule = (SCCMODULE)no;		break;
+		case 5:	m_Setting.Harz80Clock = (HARZ80CLOCK)no;	break;
 	//	case x:	m_Setting.RpCpuClock = (RPxxxxCLOCK)no;		break;
 		default:											break;
 	}
@@ -68,10 +73,11 @@ int MgspicoSettings::GetChioce(const int indexItem) const
 	switch(indexItem)
 	{
 		case 0:	no = (int)m_Setting.MusicType;		break;
-		case 1:	no = m_Setting.AutoRun;				break;
-		case 2:	no = m_Setting.RandomPlay;			break;
-		case 3:	no = (int)m_Setting.SccModule;		break;
-		case 4:	no = (int)m_Setting.Harz80Clock;	break;
+		case 1:	no = (int)m_Setting.LoopCnt;		break;
+		case 2:	no = m_Setting.AutoRun;				break;
+		case 3:	no = m_Setting.RandomPlay;			break;
+		case 4:	no = (int)m_Setting.SccModule;		break;
+		case 5:	no = (int)m_Setting.Harz80Clock;	break;
 	//	case x:	no = (int)m_Setting.RpCpuClock;		break;
 		default:									break;
 	}
@@ -176,6 +182,17 @@ MgspicoSettings::HARZ80CLOCK MgspicoSettings::GetHarz80Clock() const
 void MgspicoSettings::SetHarz80Clock(const MgspicoSettings::HARZ80CLOCK clk)
 {
 	m_Setting.Harz80Clock = clk;
+	return;
+}
+
+uint8_t MgspicoSettings::GetLoopCnt() const
+{
+	return m_Setting.LoopCnt;
+}
+
+void MgspicoSettings::SetLoopCnt(const uint8_t cnt)
+{
+	m_Setting.LoopCnt = cnt;
 	return;
 }
 

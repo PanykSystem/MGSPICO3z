@@ -11,9 +11,9 @@ public:
 		const int num;
 		const char *pChoices[5];
 	};
-	const static int NUM_MENUITEMS = 5;
+	const static int NUM_MENUITEMS;
 	enum class RPxxxxCLOCK : uint8_t {CLK125MHZ, CLK240MHZ};
-	enum class MUSICDATA : uint8_t	{MGS=0, KIN5=1, TGF=2, VGM=3, NDP=4};
+	enum class MUSICDATA : uint8_t	{MGS=0, KIN5=1, NDP=2, VGM=3, TGF=4};
 	enum class SCCMODULE : uint8_t {IKASCC=0, HRASCC=1};
 	enum class HARZ80CLOCK : uint8_t {HARZ3M58HZ=0, HARZ7M16HZ=1};
 
@@ -28,7 +28,8 @@ private:
 		uint8_t		EnforceOPLL;		// != 0 : OPLLの存在模倣する
 		SCCMODULE	SccModule;
 		HARZ80CLOCK	Harz80Clock;
-		uint8_t		Padding[121];		// (構造体サイズを128byteに保つこと)
+		uint8_t		LoopCnt;			// ループ回数（0:無限ループ、1、2，3:その回数だけループする）	
+		uint8_t		Padding[120];		// (構造体サイズを128byteに保つこと)
 	};
 #pragma pack(pop)
 
@@ -72,5 +73,8 @@ public:
 
 	HARZ80CLOCK	GetHarz80Clock() const;
 	void SetHarz80Clock(const HARZ80CLOCK clk);
+
+	uint8_t GetLoopCnt() const;
+	void SetLoopCnt(const uint8_t n);
 
 };
