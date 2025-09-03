@@ -190,25 +190,38 @@ end
 // PSG(ym2149_audio)
 // ==========================================================================
 wire bus_PSG_CS = (bus_Slot.iorq&&bus_Slot.wr&&((bus_Slot.a[7:0]==8'hA0)||(bus_Slot.a[7:0]==8'hA1)));
-wire w_BC_PSG	= (bus_PSG_CS) & (!bus_Slot.a[0]); 
-wire w_BDIR_PSG	= (bus_PSG_CS);
+reg [1:0] bus_PSG_CS_sft;
 reg ff_BC_PSG;
-reg ff_BDIR_PSG;
+reg ff_BDIR_PSG;				// 1=Write to PSG
+reg [5:0] ff_BDIR_PSG_cnt;
 reg [7:0] ff_psg_data;
+reg [7:0] ff_psg_data_tmp;
 
 always_ff@(posedge i_CLK ) begin
  	if( !i_RST_n ) begin
 		ff_BC_PSG <= 1'b0;
 		ff_BDIR_PSG <= 1'b0;
 		ff_psg_data <= 8'b0;
+		bus_PSG_CS_sft <= 2'b0;
+		ff_BDIR_PSG_cnt <= 6'd0;
 	end
 	else begin
-		// CPUバスの内容をi_CLKの1サイクル分遅らせてPSGに伝える
-		// PSGクロックの立ち上がりぴったりにff_BC_PSG/ff_BDIR_PSGを変化させると、
-		// PSGがそれを拾ってくれないため。
-		ff_BC_PSG <= w_BC_PSG;
-		ff_BDIR_PSG <= w_BDIR_PSG;
-		ff_psg_data <= bus_Slot.write_d;
+		bus_PSG_CS_sft <= {bus_PSG_CS_sft[0], bus_PSG_CS};
+		ff_psg_data_tmp <= bus_Slot.write_d;
+		//
+		if( !ff_BDIR_PSG && (bus_PSG_CS_sft == 2'b01) ) begin
+			ff_BDIR_PSG_cnt <= 6'd0;
+			ff_BC_PSG <= !bus_Slot.a[0];
+			ff_BDIR_PSG <= `HIGH;
+			ff_psg_data <= ff_psg_data_tmp;
+		end
+		else begin
+			ff_BDIR_PSG_cnt <= ff_BDIR_PSG_cnt + 6'd1;
+			if( ff_BDIR_PSG_cnt == 6'd38 ) begin
+				ff_BC_PSG <= `LOW;
+				ff_BDIR_PSG <= `LOW;
+			end
+		end
 	end
 end
 
@@ -223,6 +236,7 @@ ym2149_audio u_Ym2149Audio (
 	.data_r_o		(),						//  out    std_logic_vector(7 downto 0) -- registered output data
 	.ch_a_o			(),						//  out    unsigned(11 downto 0)
 	.ch_b_o			(),						//  out    unsigned(11 downto 0)
+
 	.ch_c_o			(),						//  out    unsigned(11 downto 0)
 	.mix_audio_o	(),						//  out    unsigned(13 downto 0)
 	.pcm14s_o		(psg_pcm14s			)	//  out    unsigned(13 downto 0)
@@ -230,25 +244,6 @@ ym2149_audio u_Ym2149Audio (
 
 wire [13:0] psg_pcm14s;
 assign bus_Sound.PSG = $signed(psg_pcm14s);
-
-reg [6:0] clk_enable_81_counter;         // 0〜80までカウント（7ビット）
-reg en_clk_psg;
-always @(posedge bus_Slot.clock) begin
-	if (!bus_Slot.reset_n) begin
-		clk_enable_81_counter <= 7'd0;
-		en_clk_psg  <= 1'b0;
-	end else begin
-		if (clk_enable_81_counter == 7'd80) begin
-			clk_enable_81_counter  <= 7'd0;
-			en_clk_psg  <= 1'b1;
-		end else begin
-			clk_enable_81_counter <= clk_enable_81_counter + 7'd1;
-			en_clk_psg  <= 1'b0;
-		end
-	end
-end
-
-
 
 // PSG I/O アクセス時に CPUクロックで1サイクルのWAIT期間を追加する回路
 reg [6:0] psg_forbusy_cnt;
@@ -261,7 +256,7 @@ always_ff @(posedge i_CLK) begin
 		psg_nobusy <= `LOW;
 	end
 	else begin
-		if( !psg_nobusy && !psg_busy && w_BC_PSG ) begin
+		if( !psg_nobusy && !psg_busy && ff_BDIR_PSG ) begin
 			psg_busy <= `HIGH;
 			psg_forbusy_cnt <= 7'd58;	// WAITをつくり出すための期間
 		end
@@ -382,74 +377,87 @@ end
 // SCC(IKASCC)
 //-----------------------------------------------------------------------
 wire busy_s1_p2 = `LOW;
-wire w_IKASCC_CS_n = ~sel_s1_p2;
-reg ff_IKASCC_CS_n;
-reg ff_IKASCC_RD_n;
-reg ff_IKASCC_WR_n;
-wire [7:0] w_IKASCC_ABLO = bus_Slot.a[7:0];
-wire [4:0] w_IKASCC_ABHI = bus_Slot.a[15:11];
-wire [7:0] w_IKASCC_RD_DATA;
-reg [7:0] ff_IKASCC_WR_DATA;
-reg [3:0] ff_IKASCC_RISE_CNT;
-reg		  	scc_wr_delay_on;
-reg	[4:0]	z80_f_cnt;
-wire		w_IKASCC_DB_OE;
+reg [1:0] ff_IKASCC_CS_sft;
+reg [5:0] ff_IKASCC_CS_cnt;
+reg ff_IKASCC_CS;
 
-assign bus_Slot.read_d	= (sel_s1_p2&&w_IKASCC_DB_OE) ? w_IKASCC_RD_DATA: 8'bz;
+reg [5:0] ff_IKASCC_RDWR_cnt;
+reg ff_IKASCC_RD;
+reg ff_IKASCC_RD_pre;
+reg [1:0] ff_IKASCC_RD_sft;
+reg ff_IKASCC_WR;
+reg ff_IKASCC_WR_pre;
+reg [1:0] ff_IKASCC_WR_sft;
+
+reg [7:0] ff_IKASCC_WR_DATA_temp;
+reg [7:0] ff_IKASCC_WR_DATA;
+reg [7:0] ff_IKASCC_ABLO;
+reg [4:0] ff_IKASCC_ABHI;
+reg [7:0] ff_IKASCC_ABLO_temp;
+reg [4:0] ff_IKASCC_ABHI_temp;
 
 always_ff@(posedge i_CLK ) begin
 	if( !i_RST_n ) begin
-		ff_IKASCC_CS_n <= `HIGH;
-		ff_IKASCC_RD_n <= `HIGH;
-		ff_IKASCC_WR_n <= `HIGH;
-		ff_IKASCC_RISE_CNT <= 4'b000;
-		scc_wr_delay_on <= `LOW;
-		z80_f_cnt <= 5'd0;
+		ff_IKASCC_CS_sft <= 2'b0;
+		ff_IKASCC_CS_cnt <= 6'd0;
+		ff_IKASCC_CS <= `LOW;
+		ff_IKASCC_WR_sft <= 2'b0;
+		ff_IKASCC_RDWR_cnt <= 6'd0;
+		ff_IKASCC_WR <= `LOW;
+		ff_IKASCC_WR_pre <= `LOW;
+		ff_IKASCC_RD_sft <= 2'b0;
+		ff_IKASCC_RD <= `LOW;
+		ff_IKASCC_RD_pre <= `LOW;
+		ff_IKASCC_ABLO <= 8'b0;
+		ff_IKASCC_ABHI <= 5'b0;
 	end
 	else begin
-		if( scc_wr_delay_on ) begin		// WRを、CSより1cyc遅れてアサートさせる
-			scc_wr_delay_on <= `LOW;
-			ff_IKASCC_WR_n <= `LOW;
+		ff_IKASCC_CS_sft <= {ff_IKASCC_CS_sft[0], sel_s1_p2};
+		ff_IKASCC_WR_sft <= {ff_IKASCC_WR_sft[0], bus_Slot.wr};
+		ff_IKASCC_RD_sft <= {ff_IKASCC_RD_sft[0], bus_Slot.rd};
+		ff_IKASCC_WR_DATA_temp <= bus_Slot.write_d;
+		ff_IKASCC_ABLO_temp <= bus_Slot.a[7:0];
+		ff_IKASCC_ABHI_temp <= bus_Slot.a[15:11];
+		if( !ff_IKASCC_CS && ff_IKASCC_CS_sft == 2'b01 ) begin
+			ff_IKASCC_CS <= `HIGH;
+			ff_IKASCC_CS_cnt <= 6'd0;
+			ff_IKASCC_ABLO <= ff_IKASCC_ABLO_temp;
+			ff_IKASCC_ABHI <= ff_IKASCC_ABHI_temp;
+			ff_IKASCC_WR_DATA <= ff_IKASCC_WR_DATA_temp;
 		end
-		if( ff_IKASCC_CS_n ) begin
-			if( !w_IKASCC_CS_n ) begin
-				ff_IKASCC_CS_n <= w_IKASCC_CS_n;
-				ff_IKASCC_RISE_CNT <= 4'b001;
-				ff_IKASCC_RD_n <= ~bus_Slot.rd;
-				if( bus_Slot.wr ) begin
-				 	scc_wr_delay_on <= `HIGH;
-					ff_IKASCC_WR_DATA <= bus_Slot.write_d;
-				 end
+		if( !ff_IKASCC_WR_pre && ff_IKASCC_WR_sft == 2'b01 ) begin
+			ff_IKASCC_WR_pre <= `HIGH;
+		end
+		if( !ff_IKASCC_RD_pre && ff_IKASCC_RD_sft == 2'b01 ) begin
+			ff_IKASCC_RD_pre <= `HIGH;
+		end
+		if( ff_IKASCC_CS ) begin
+			//
+			ff_IKASCC_CS_cnt <= ff_IKASCC_CS_cnt + 6'd1;
+			if( ff_IKASCC_CS_cnt == (i_masicn_IKASCC + 6'd2) ) begin
+				ff_IKASCC_CS <= `LOW;
 			end
-			else begin
-				ff_IKASCC_CS_n <= ff_IKASCC_CS_n;
-			end;
+			//
+			if( ff_IKASCC_WR_pre ) begin
+				ff_IKASCC_RDWR_cnt <= 6'd0;
+				ff_IKASCC_WR <= `HIGH;
+			end
+			else if( ff_IKASCC_RD_pre ) begin
+				ff_IKASCC_RD <= `HIGH;
+				ff_IKASCC_RDWR_cnt <= 6'd0;
+			end
 		end
-		else begin
-			z80_f_cnt <= z80_f_cnt + 5'd01;
-			//if( z80_f_cnt == 5'd19 ) begin	// for Z80 3.58MHz
-			//if( z80_f_cnt == 5'd9 ) begin		// for Z80 7.16MHz
-			if( z80_f_cnt == i_masicn_IKASCC ) begin
-				z80_f_cnt <= 5'd0;
-				ff_IKASCC_RISE_CNT <= {ff_IKASCC_RISE_CNT[2:0], 1'b0};
-				if( ff_IKASCC_RISE_CNT[0] ) begin
-					ff_IKASCC_WR_n <= `HIGH;
-					ff_IKASCC_RD_n <= `HIGH;
-				end
-				if( ff_IKASCC_RISE_CNT[1] ) begin
-					ff_IKASCC_CS_n <= `HIGH;
-				end
+		if( ff_IKASCC_WR || ff_IKASCC_RD ) begin
+			ff_IKASCC_RDWR_cnt <= ff_IKASCC_RDWR_cnt + 6'd1;
+			if( ff_IKASCC_RDWR_cnt == i_masicn_IKASCC ) begin
+				ff_IKASCC_WR <= `LOW;
+				ff_IKASCC_WR_pre <= `LOW;
+				ff_IKASCC_RD <= `LOW;
+				ff_IKASCC_RD_pre <= `LOW;
 			end
 		end
 	end
 end
-
-wire w_DQCE_IKASCC_WR_n;
-Gowin_DQCE u_Gowin_DQCE_IKASCC_WR(
-	.clkin(ff_IKASCC_WR_n),
-	.clkout(w_DQCE_IKASCC_WR_n),
-	.ce(`HIGH)
-);
 
 IKASCC #(
 	.IMPL_TYPE(2),	// 2 : async,3.58MHz  
@@ -458,11 +466,11 @@ IKASCC #(
 	.i_EMUCLK		(bus_Slot.clock		),
 	.i_MCLK_PCEN_n	(1'b0				),
 	.i_RST_n		(bus_Slot.reset_n	),
-	.i_CS_n			(ff_IKASCC_CS_n		),
-	.i_RD_n			(ff_IKASCC_RD_n		),
-	.i_WR_n			(w_DQCE_IKASCC_WR_n	),
-	.i_ABLO			(w_IKASCC_ABLO		),
-	.i_ABHI			(w_IKASCC_ABHI		),
+	.i_CS_n			(~ff_IKASCC_CS		),
+	.i_RD_n			(~ff_IKASCC_RD		),
+	.i_WR_n			(~ff_IKASCC_WR		),
+	.i_ABLO			(ff_IKASCC_ABLO		),
+	.i_ABHI			(ff_IKASCC_ABHI		),
 	.i_DB			(ff_IKASCC_WR_DATA	),
 	.o_DB			(w_IKASCC_RD_DATA	),
 	.o_DB_OE		(w_IKASCC_DB_OE		),
@@ -471,6 +479,11 @@ IKASCC #(
 	.o_SOUND		(bus_Sound.IKASCC	),	// signed[10:0]
 	.o_TEST			(					)
 );
+
+wire [7:0]	w_IKASCC_RD_DATA;
+wire		w_IKASCC_DB_OE;
+assign bus_Slot.read_d	= (ff_IKASCC_CS&&w_IKASCC_DB_OE) ? w_IKASCC_RD_DATA: 8'bz;
+
 
 // ==========================================================================
 // 基本スロットのページ選択
@@ -483,7 +496,7 @@ assign bus_Slot.read_d = (io_acc && bus_Slot.rd) ? resIoData8 : 8'bz;
 // RegBaseSlot[1]: PageNo(0-3) of Slot-1
 // RegBaseSlot[2]: PageNo(0-3) of Slot-2
 // RegBaseSlot[3]: PageNo(0-3) of Slot-3
-reg	[1:0] RegBaseSlot[3:0];	
+reg [1:0]	RegBaseSlot [3:0];
 
 always_ff @(posedge i_CLK) begin
 	if(!i_RST_n) begin
@@ -580,7 +593,7 @@ Ram16kUnit #(
 
 // --------------------------------------------------------------------------
 Ram16kUnit #(
-    .TOP_RAM_ADDR(8'b0000_0011)	// page-2用のトップメモリアドレス
+	.TOP_RAM_ADDR(8'b0000_0011)	// page-3用のトップメモリアドレス
 ) u_Ram16k_s3_p3
 (
 	.i_CLK			(i_CLK				),

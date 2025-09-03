@@ -1,19 +1,19 @@
 ﻿set(BinName "harzlib")
 
 set(Z80Asm AILZ80ASM.exe)
-set(Z80AsmOpt -bin -lst -lm simple -ts 4 -f)
+set(Z80AsmOpt -bin -lm simple -ts 4 -f)
 
 add_custom_command(
 	OUTPUT harzbios.bin
 	DEPENDS harzbios.z80
 	COMMAND cd ${CMAKE_CURRENT_SOURCE_DIR}
-	COMMAND ${Z80Asm} -i harzbios.z80 -o ${CMAKE_CURRENT_BINARY_DIR}/harzbios.bin ${Z80AsmOpt}
+	COMMAND ${Z80Asm} -i harzbios.z80 -o ${CMAKE_CURRENT_BINARY_DIR}/harzbios.bin -lst ${CMAKE_CURRENT_BINARY_DIR}/harzbios.lst ${Z80AsmOpt}
 )
 add_custom_command(
 	OUTPUT hartplay.bin
 	DEPENDS hartplay.z80
 	COMMAND cd ${CMAKE_CURRENT_SOURCE_DIR}
-	COMMAND ${Z80Asm} -i hartplay.z80 -o ${CMAKE_CURRENT_BINARY_DIR}/hartplay.bin ${Z80AsmOpt}
+	COMMAND ${Z80Asm} -i hartplay.z80 -o ${CMAKE_CURRENT_BINARY_DIR}/hartplay.bin -lst ${CMAKE_CURRENT_BINARY_DIR}/hartplay.lst ${Z80AsmOpt}
 )
 
 set(ObjCpy arm-none-eabi-objcopy.exe)

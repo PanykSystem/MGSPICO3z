@@ -2,6 +2,8 @@
 ;@title Sound driver contoller 
 ;@auther Harumakkin
 
+include "msxbios.inc"
+
 MUSTYPE:						;; ここの定義を変更したら、SNDCTRL: ルーチン内の処理も変更する
 	.MGS			equ	0x00
 	.KINR5			equ	0x01
@@ -97,16 +99,16 @@ SNDCTRL:
 		dec		A
 		jp		z, NDP_PLAYER
 		dec		A
-		jr		z, SNDCTRL		; VGM
+		jp		z, VGM_PLAYER		; VGM
 		dec		A
-		jr		z, SNDCTRL		; TGF
+		jp		z, TGF_PLAYER		; TGF
 		jr		SNDCTRL
 
 ;----------------------------------------------------------------------------
 org 0x4020
 WORKIF:
 	.driver_select
-		db		0			; 0=MGSDRV, 1=KINROU5
+		db		0			; 0=MGSDRV、1=KINROU5、2=NDP, 3=VGM, 4=TGF
 
 ;----------------------------------------------------------------------------
 org 0x4100
@@ -859,3 +861,21 @@ NDP_MAKEINFO:
 		out		(HARZIO.WKRAM_ED), A			; finish(don't care the value of A).
 		ret
 
+;----------------------------------------------------------------------------
+; VGM, TGF
+;----------------------------------------------------------------------------
+VGM_PLAYER:
+TGF_PLAYER:
+	.begin
+		call	LED2N
+		xor		A
+		call	CHIP_SET_EVOL
+		; Page2をSlot1に切り替えておく（for SCC）
+		ld		H, 0x80				; 10xxxxxxb = Page2 
+		ld		A, 0x01				; 基本スロット番号1
+		call	BIOS.ENASLT
+		ld		HL, 0x9000
+		ld		A, 0x3F				; SCCを有効にする
+		ld		(HL), A
+		; Z80を止めておく
+		halt

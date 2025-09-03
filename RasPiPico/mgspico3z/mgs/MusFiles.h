@@ -18,7 +18,6 @@ public:
 
 private:
 	static const int MAX_FILEITEMS = 1000;
-	MgspicoSettings::MUSICDATA	m_Type;
 	int m_NumItems;
 	int m_NumFiles;
 	FILESPEC m_Files[MAX_FILEITEMS];
@@ -44,7 +43,4 @@ public:
 	int GetTopFileNo() const;
 	const FILESPEC *GetItemSpec(const int no) const;
 	const char* GetDirName(const int no) const;
-	void SetMusicType(const MgspicoSettings::MUSICDATA type);
-	MgspicoSettings::MUSICDATA GetMusicType() const;
-
 };

@@ -25,11 +25,15 @@ public:
 	uint8_t ReadMem1(const harz80::memaddr_t addr);
 	void WriteBlockMem(const harz80::memaddr_t addr, const uint8_t *pDt, const size_t sz);
 
-
 	const uint8_t *ReadStatus(uint8_t *pRcvBuff, const int RcvLen);
 	void ResetCpu();
 	void SetBusak(const int n);
 	void SetCCmd(const uint8_t ccmd);
 	void SetClkMode(const uint8_t dt8);
 	void SetCCmdData(const uint8_t dt8);
+
+	// for direct access to sound chip
+	void OutOPLL(const uint8_t regNo, const uint8_t dt8);
+	void OutPSG(const uint8_t regNo, const uint8_t dt8);
+	void OutSCC(const harz80::memaddr_t addr, const uint8_t d8);
 };

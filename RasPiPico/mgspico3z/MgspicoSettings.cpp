@@ -16,7 +16,7 @@ MgspicoSettings::~MgspicoSettings()
 
 void MgspicoSettings::setDefault(SETTINGDATA *p)
 {
-	p->MusicType = MUSICDATA::MGS;
+	p->MusicType = MUSICTYPE::MGS;
 	p->RpCpuClock = RPxxxxCLOCK::CLK125MHZ;
 	p->AutoRun = 0;
 	p->RandomPlay = 0;
@@ -40,7 +40,7 @@ const MgspicoSettings::ITEM *MgspicoSettings::GetItem(const int indexItem) const
 {
 	static const ITEM items[] = 
 	{
-		{"music",		3,	{" MGS ", "MuSICA", " NDP ", " VGM ", " TGF ",}	},
+		{"music",		5,	{" MGS ", "MuSICA", " NDP ", " VGM ", " TGF ",}	},
 		{"loop cnt",	4,	{" * ", " 1 ", " 2 ", " 3 ", }				},
 		{"auto run",	2,	{"OFF", "ON", }							},
 		{"random",		2,	{"OFF", "ON", }							},
@@ -55,7 +55,7 @@ void MgspicoSettings::SetChioce(const int indexItem, const int no)
 {
 	switch(indexItem)
 	{
-		case 0:	m_Setting.MusicType = (MUSICDATA)no;		break;
+		case 0:	m_Setting.MusicType = (MUSICTYPE)no;		break;
 		case 1:	m_Setting.LoopCnt = (uint8_t)no;			break;
 		case 2:	m_Setting.AutoRun = no;						break;
 		case 3:	m_Setting.RandomPlay = no;					break;
@@ -89,9 +89,11 @@ bool MgspicoSettings::ReadSettingFrom(const char *pFilePath)
 	UINT readSize;
 	if( sd_fatReadFileFrom(pFilePath, sizeof(m_Setting), (uint8_t*)&m_Setting, &readSize) ) {
 		if( sizeof(m_Setting) == readSize ) {
+			// 正常に読み込めた
 			return true;
 		}
 	}
+	// 読み込み失敗、またはサイズ不一致の場合は、デフォルト値に戻す
 	setDefault(&m_Setting);
 	return false;;
 }
@@ -103,12 +105,12 @@ bool MgspicoSettings::WriteSettingTo(const char *pFilePath)
 	return false;
 }
 
-MgspicoSettings::MUSICDATA MgspicoSettings::GetMusicType() const
+MUSICTYPE MgspicoSettings::GetMusicType() const
 {
 	return m_Setting.MusicType;
 }
 
-void MgspicoSettings::SetMusicType(const MgspicoSettings::MUSICDATA type)
+void MgspicoSettings::SetMusicType(const MUSICTYPE type)
 {
 	m_Setting.MusicType = type;
 	return;
@@ -119,12 +121,12 @@ bool MgspicoSettings::Is240MHz() const
 	return (m_Setting.RpCpuClock == RPxxxxCLOCK::CLK240MHZ);
 }
 
-MgspicoSettings::RPxxxxCLOCK MgspicoSettings::GetRp2040Clock() const
+RPxxxxCLOCK MgspicoSettings::GetRp2040Clock() const
 {
 	return m_Setting.RpCpuClock;
 }
 
-void MgspicoSettings::SetRp2040Clock(const MgspicoSettings::RPxxxxCLOCK clk)
+void MgspicoSettings::SetRp2040Clock(const RPxxxxCLOCK clk)
 {
 	m_Setting.RpCpuClock = clk;
 	return;
@@ -163,23 +165,23 @@ void MgspicoSettings::SetEnforceOPLL(const bool bEnforce)
 	return;
 }
 
-MgspicoSettings::SCCMODULE MgspicoSettings::GetSccModule() const
+SCCMODULE MgspicoSettings::GetSccModule() const
 {
 	return m_Setting.SccModule;
 }
 
-void MgspicoSettings::SetSccModule(const MgspicoSettings::SCCMODULE mod)
+void MgspicoSettings::SetSccModule(const SCCMODULE mod)
 {
 	m_Setting.SccModule = mod;
 	return;
 }
 
-MgspicoSettings::HARZ80CLOCK MgspicoSettings::GetHarz80Clock() const
+HARZ80CLOCK MgspicoSettings::GetHarz80Clock() const
 {
 	return m_Setting.Harz80Clock;
 }
 
-void MgspicoSettings::SetHarz80Clock(const MgspicoSettings::HARZ80CLOCK clk)
+void MgspicoSettings::SetHarz80Clock(const HARZ80CLOCK clk)
 {
 	m_Setting.Harz80Clock = clk;
 	return;

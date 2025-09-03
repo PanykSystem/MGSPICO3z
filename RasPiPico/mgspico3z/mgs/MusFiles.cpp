@@ -8,7 +8,6 @@
 MusFiles::MusFiles() 
 {
 	m_NumFiles = 0;
-	m_Type = MgspicoSettings::MUSICDATA::MGS;
 	return;
 }
 
@@ -182,8 +181,6 @@ MusFiles::GetTopFileNo() const
 	return 0;
 }
 
-
-
 const MusFiles::FILESPEC
 *MusFiles::GetItemSpec(const int no) const
 {
@@ -200,17 +197,3 @@ MusFiles::GetDirName(const int no) const
 		return pF->name;
 	return nullptr;
 }
-
-void
-MusFiles::SetMusicType(const MgspicoSettings::MUSICDATA type)
-{
-	m_Type = type;
-	return;
-}
-
-MgspicoSettings::MUSICDATA
-MusFiles::GetMusicType() const
-{
-	return (m_Type);
-}
-

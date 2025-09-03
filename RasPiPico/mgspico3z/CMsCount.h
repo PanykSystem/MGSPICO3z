@@ -14,10 +14,12 @@ public:
 	virtual ~CMsCount();
 public:
 	void Reset(uint32_t t);
-	uint32_t GetTime();
+	uint32_t GetTriggerTimeMS() const;
+	uint32_t GetTime() const;
 	bool IsTimeOut(const bool bContinuous = false);
 	bool IsMidway();
 	void Cancel();
 	bool IsValid() const;
+	float GetProgress() const;
 };
 

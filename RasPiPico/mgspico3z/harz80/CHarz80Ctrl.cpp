@@ -228,3 +228,28 @@ void CHarz80Ctrl::SetClkMode(const uint8_t dt8)
 	gpio_put( HARZ80_SPI_PIN_CS_n, 1 );	/* Set CS# high */
 	return;
 }
+
+void CHarz80Ctrl::OutOPLL(const uint8_t regNo, const uint8_t dt8)
+{
+	OutputIo(0x7C, regNo);
+	busy_wait_us(4);
+	OutputIo(0x7D, dt8);
+	busy_wait_us(24);
+	return;
+}
+
+void CHarz80Ctrl::OutPSG(const uint8_t regNo, const uint8_t dt8)
+{
+	OutputIo(0xA0, regNo);
+	busy_wait_us(1);
+	OutputIo(0xA1, dt8);
+	busy_wait_us(1);
+	return;
+}
+
+void CHarz80Ctrl::OutSCC(const harz80::memaddr_t addr, const uint8_t dt8)
+{
+	WriteMem1(addr, dt8);
+	busy_wait_us(1);
+	return;
+}

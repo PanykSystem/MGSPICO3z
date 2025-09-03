@@ -1,6 +1,7 @@
 #pragma once
 #include <stdint.h>
 #include "ff/ff.h"
+#include "mgspico.h"
 
 class MgspicoSettings
 {
@@ -12,16 +13,12 @@ public:
 		const char *pChoices[5];
 	};
 	const static int NUM_MENUITEMS;
-	enum class RPxxxxCLOCK : uint8_t {CLK125MHZ, CLK240MHZ};
-	enum class MUSICDATA : uint8_t	{MGS=0, KIN5=1, NDP=2, VGM=3, TGF=4};
-	enum class SCCMODULE : uint8_t {IKASCC=0, HRASCC=1};
-	enum class HARZ80CLOCK : uint8_t {HARZ3M58HZ=0, HARZ7M16HZ=1};
 
 private:
 #pragma pack(push,1)
 	// この構造体はそのままファイル保存されるので一度決めた位置・サイズは変更しない。
 	struct SETTINGDATA {
-		MUSICDATA	MusicType;
+		MUSICTYPE	MusicType;
 		RPxxxxCLOCK	RpCpuClock;
 		uint8_t		AutoRun;			// != 0 : 自動的に演奏を開始する
 		uint8_t		RandomPlay;			// != 0 : ランダムの曲順で再生する
@@ -52,8 +49,8 @@ public:
 	bool ReadSettingFrom(const char *pFilePath);
 	bool WriteSettingTo(const char *pFilePath);
 public:
-	MUSICDATA GetMusicType() const;
-	void SetMusicType(const MUSICDATA type);
+	MUSICTYPE GetMusicType() const;
+	void SetMusicType(const MUSICTYPE type);
 
 	bool Is240MHz() const;
 	RPxxxxCLOCK GetRp2040Clock() const;

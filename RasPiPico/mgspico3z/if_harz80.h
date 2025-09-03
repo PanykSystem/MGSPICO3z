@@ -5,30 +5,39 @@ namespace harz80 {
 
 enum TXCMD : uint8_t
 {
-	TXCMD_NOP			= 0x00,
+	TXCMD_NOP				= 0x00,
 	//
-	TXCMD_PSRAM_WR_8	= 0x01,
-	TXCMD_PSRAM_RD_8	= 0x02,
+	TXCMD_PSRAM_WR_8		= 0x01,
+	TXCMD_PSRAM_RD_8		= 0x02,
 	//
-	TXCMD_Z80MEM_WR_1	= 0x03,		// 1byte
-	TXCMD_Z80MEM_RD_1	= 0x04,
-	TXCMD_Z80MEM_WR_2	= 0x05,		// 2byte(WORD)
-	TXCMD_Z80MEM_RD_2	= 0x06,
-	TXCMD_Z80MEM_WR_4	= 0x07,		// 4byte(DWORD)
-	TXCMD_Z80MEM_RD_4	= 0x08,
+	TXCMD_Z80MEM_WR_1		= 0x03,		// 1byte
+	TXCMD_Z80MEM_RD_1		= 0x04,
+	TXCMD_Z80MEM_WR_2		= 0x05,		// 2byte(WORD)
+	TXCMD_Z80MEM_RD_2		= 0x06,
+	TXCMD_Z80MEM_WR_4		= 0x07,		// 4byte(DWORD)
+	TXCMD_Z80MEM_RD_4		= 0x08,
 	//
-	TXCMD_Z80IO_WR		= 0x09,
-	TXCMD_Z80IO_RD		= 0x0a,
+	TXCMD_Z80IO_WR			= 0x09,
+	TXCMD_Z80IO_RD			= 0x0a,
 	//
-	TXCMD_HARZ_RESET	= 0x10,
-	TXCMD_HARZ_RUN		= 0x11,
-	TXCMD_HARZ_STOP		= 0x12,
-	TXCMD_padding1		= 0x13,		// (空き)
+	TXCMD_HARZ_RESET		= 0x10,
+	TXCMD_HARZ_RUN			= 0x11,
+	TXCMD_HARZ_STOP			= 0x12,
+	TXCMD_padding1			= 0x13,		// (空き)
 	//
 	TXCMD_HARZ_GETSTS		= 0x14,		// 動作状態を返す
 	TXCMD_HARZ_SETCMD		= 0x15,
 	TXCMD_HARZ_CLKMODE		= 0x16,		// Z80速度 0=3.58MHz, 1=7.16Mhz
 	TXCMD_HARZ_SETCMDDATA	= 0x17,
+	//
+	TXCMD_DIRECT_PSG		= 0x20,		// PSGに直接書き込む
+	TXCMD_DIRECT_OPLL		= 0x21,		// OPLLに直接書き込む
+	TXCMD_DIRECT_SCC		= 0x22,		// SCCに直接書き込む
+	TXCMD_IKAOPLL_MOVOL		= 0x23,		// IKAOPLLのMUSIC音量を変更する
+	TXCMD_IKAOPLL_ROVOL		= 0x24,		// IKAOPLLのRHYTHM音量を変更する
+	TXCMD_SEL_SCC_MODULE	= 0x25,		// SCC音源として、IKAOPLLかWTSを選択する
+	//
+	TXCMD_HARZ_EOT			= 0xff,
 };
 
 enum CCMD : uint8_t

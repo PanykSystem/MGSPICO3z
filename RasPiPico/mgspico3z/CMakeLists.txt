@@ -15,11 +15,14 @@ add_executable(
 	ff/ffsystem.c
 	ff/ffunicode.c
 	ff/mmc_pico_spi.c
+	tgf/CTgfPlayer.cpp
+	vgm/CVgmPlayer.cpp
 	oled/oledssd1306.cpp
 	sdfat.cpp
 	CMsCount.cpp
 	MgspicoSettings.cpp
 	mgspico3z.cpp
+	CReadFileStream.cpp
 )
 
 include_directories(
@@ -28,6 +31,8 @@ include_directories(
 	mgs
 	harz80
 	harzlib
+	tgf
+	vgm
 )
 
 target_compile_options(
@@ -59,7 +64,8 @@ target_link_libraries(
 	harzlib
 	tinyusb_host
 	tinyusb_board
-#	hardware_pio pico_multicore hardware_flash
+	pico_multicore
+#	hardware_pio hardware_flash
 #	host_cdc_msc_hid tinyusb_device
 )
 
