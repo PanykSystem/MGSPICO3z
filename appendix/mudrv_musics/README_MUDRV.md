@@ -1,6 +1,6 @@
 # MUDRV\.COMを使用した曲データの再生
 
-2025/11/30 harumakkin
+2025/12/20 harumakkin
 
 ##### MUDRV\.COMとは
 体験版「プリンセスメーカー」で使用されている音源ドライバです。このMUDRV\.COMを使用することで、(株)マイクロキャビンが過去発売したMSX向けゲームソフト内のBGMデータを再生して鑑賞することができます。
@@ -22,7 +22,8 @@ Table.1 MGSPICO3z対応タイトル
 |幻影都市|turboR|8|ディスクNo.1<br>ディスクNo.2<br>ディスクNo.3<br>ディスクNo.4<br>ディスクNo.5<br>ディスクNo.6<br>ディスクNo.7<br>ディスクNo.8<br>|ILLCity_No1.dsk<br>ILLCity_No2.dsk<br>ILLCity_No3.dsk<br>ILLCity_No4.dsk<br>ILLCity_No5.dsk<br>ILLCity_No6.dsk<br>ILLCity_No7.dsk<br>ILLCity_No8.dsk|
 |キャビンパニック|MSX2|3|ディスクNo.1<br>ディスクNo.2<br>ディスクNo.3|THE_TOWER_OF_CABIN_1.dsk<br>THE_TOWER_OF_CABIN_2.dsk<br>THE_TOWER_OF_CABIN_3.dsk|
 |キャンペーン版大戦略II|MSX2|2|システムディスク<br>データディスク|CAMP_DAISENRYAKU2_MSX2.dsk<br>|
-|プリンセスメーカー(体験版)|MSX2|-|-|
+|プリンセスメーカー(パッケージ版)|MSX2|7|ディスクNo.1<br>ディスクNo.2<br>ディスクNo.3<br>ディスクNo.4<br>ディスクNo.5<br>ディスクNo.6<br>ディスクNo.7<br>|PM_No1.dsk<br>PM_No2.dsk<br>PM_No3.dsk<br>PM_No4.dsk<br>PM_No5.dsk<br>PM_No6.dsk<br>PM_No7.dsk<br>|
+|プリンセスメーカー(体験版)|MSX2|-|-|-|
 |倉庫番パーフェクト|MSX2|1|-|－|
 
 ##### BGMデータ抽出の前準備

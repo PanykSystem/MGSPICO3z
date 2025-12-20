@@ -6,4 +6,5 @@ call extract_Xak2_MSX2.cmd < nul
 call extract_ILLUSION_MSXtR.cmd < nul
 call extract_SOUKOBAN_MSX2.cmd < nul
 call extract_CAMP_DAISENRYAKU2_MSX2.cmd < nul
+call extract_PRINCESSMAKER_MSX2.cmd < nul
 pause
