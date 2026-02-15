@@ -8,7 +8,6 @@ module halmem (
 	input	wire		i_RST_n,
 	input	wire		i_CLK_3M579,
 	input	wire		i_CLK_3M072,		// for SPDIF 3.072MHz  (48KHz 32bits x2) by External
-	output	wire		o_CLK_71M7,
 // SPI(Pico -> TangNano9K)
 	input	wire		i_SPI_CS_n,
 	input	wire		i_SPI_CLK,
@@ -52,12 +51,13 @@ localparam LATENCY = 3;
 //-----------------------------------------------------------------------
 // CLOCK
 //-----------------------------------------------------------------------
-/// 17.9MHz
-wire clk_17M9;					// for DAC
-Gowin_OSC u_osc (
-	.oscout		(clk_17M9)
-);
-/// 71.7MHz
+//// 17.9MHz
+//wire clk_17M9;	// for DAC
+//Gowin_OSC u_osc (
+//	.oscout		(clk_17M9)
+//);
+
+// 71.7MHz
 wire clk_71M7;
 wire clk_71M7_p;
 Gowin_rPLL_x20p u_rPLL_x20(
@@ -65,13 +65,12 @@ Gowin_rPLL_x20p u_rPLL_x20(
 	.clkoutp	(clk_71M7_p),
 	.clkin		(i_CLK_3M579)
 );
-///
-assign o_CLK_71M7	= clk_71M7;
+
 
 //-----------------------------------------------------------------------
 // MIXER
 //-----------------------------------------------------------------------
-wire signed [5:0]	Volume_Percent = 6'(8'd15 - (mix_vol_f[7:0]));
+wire signed [20:0]	Volume_Percent = $signed({13'b0, 8'd15 - mix_vol_f[7:0]});
 wire 		[15:0]	mix_vol_f;
 MMP_cdc_F2L u_VolCdc (
 	.i_RST_n	(i_RST_n		),
@@ -81,72 +80,23 @@ MMP_cdc_F2L u_VolCdc (
 	.o_DATA_B	(mix_vol_f		)
 );
 
-wire signed [15:0]	snd_IKASCC_x	= $signed(bus_Sound.IKASCC * 8);
-wire signed [15:0]	snd_PSG_x		= $signed(bus_Sound.PSG / 2'sd2);
-wire signed [15:0]	SOUND_OPLL_x	= $signed(bus_Sound.OPLL);
-wire signed [15:0]	SOUND_SCC_y		= 16'sd0;//{bus_Sound.IKASCC, 5'b0};
-wire signed [15:0]	SOUND_PSG_y	 	= 16'sd0;//{bus_Sound.PSG, 2'b0};
-wire signed [15:0]	SOUND_OPLL_y	= 16'sd0;// bus_Sound.OPLL;
-wire signed [17:0]	SOUND_ALL_w		= $signed(SOUND_OPLL_x) + $signed(snd_IKASCC_x) + $signed(snd_PSG_x) /*+ snd_WTS_x*/;
-wire signed [20:0]	SOUND_ALL_x		= $signed(SOUND_ALL_w * Volume_Percent / 15);
+wire signed [15:0]	snd_IKASCC_x	= bus_Sound.IKASCC * 16'sd8;
+wire signed [15:0]	snd_PSG_x		= bus_Sound.PSG / 16'sd2;
+wire signed [15:0]	snd_OPLL_x		= bus_Sound.OPLL;
+wire signed [20:0]	SOUND_ALL_w		= (snd_OPLL_x + snd_IKASCC_x + snd_PSG_x) * 21'sd4;
+wire signed [20:0]	SOUND_ALL_x		= SOUND_ALL_w * Volume_Percent / 21'sd15;
 wire signed [15:0]	SOUND_ALL_y		= $signed(SOUND_ALL_x[15:0]);
-
-
-// 従来の処理
-// wire signed [10:0] 	snd_WTS_w		= (11'h400 <= bus_Sound.WTS) ? bus_Sound.WTS-11'h400 : bus_Sound.WTS+11'h400;
-// wire signed [15:0]	snd_WTS_x		= {{5{snd_WTS_w[10]}}, snd_WTS_w} * 6'sd8;
-// wire signed [15:0]	snd_IKASCC_x	= {{5{bus_Sound.IKASCC[10]}}, bus_Sound.IKASCC} * 6'sd8;
-// wire signed [15:0]	snd_PSG_x		= bus_Sound.PSG / 2'sd2;
-// wire signed [15:0]	SOUND_OPLL_x	= bus_Sound.OPLL;
-// wire signed [15:0]	SOUND_SCC_y		= 16'sd0;//{bus_Sound.IKASCC, 5'b0};
-// wire signed [15:0]	SOUND_PSG_y	 	= 16'sd0;//{bus_Sound.PSG, 2'b0};
-// wire signed [15:0]	SOUND_OPLL_y	= 16'sd0;// bus_Sound.OPLL;
-// wire signed [15:0]	SOUND_ALL_y		= ((SOUND_OPLL_x + snd_IKASCC_x + snd_PSG_x /*+ snd_WTS_x*/) * Volume_Percent) / 15;
-
-// wire signed [10:0] 	snd_WTS_w		= (11'h400 <= bus_Sound.WTS) ? bus_Sound.WTS-11'h400 : bus_Sound.WTS+11'h400;
-// wire signed [15:0]	snd_WTS_x		= {{5{snd_WTS_w[10]}}, snd_WTS_w} * 6'sd8;
-// wire signed [15:0]	snd_IKASCC_x	= {{5{bus_Sound.IKASCC[10]}}, bus_Sound.IKASCC} * 6'sd8;
-// wire signed [15:0]	snd_PSG_x		= bus_Sound.PSG / 2'sd2;
-// wire signed [15:0]	SOUND_OPLL_x	= bus_Sound.OPLL;
-// wire signed [15:0]	SOUND_SCC_y		= 16'sd0;//{bus_Sound.IKASCC, 5'b0};
-// wire signed [15:0]	SOUND_PSG_y	 	= 16'sd0;//{bus_Sound.PSG, 2'b0};
-// wire signed [15:0]	SOUND_OPLL_y	= 16'sd0;// bus_Sound.OPLL;
-// wire signed [15:0]	SOUND_ALL_y		= ((SOUND_OPLL_x + snd_IKASCC_x + snd_PSG_x /*+ snd_WTS_x*/) * Volume_Percent) >>> 4;
-// //ここからちぇっく
 
 //-----------------------------------------------------------------------
 // DAC
 //-----------------------------------------------------------------------
-wire signed [15:0]	SOUND_DAC_z;
-
-// MMP_cdc_L2F u_DacCdc (
-// 	.i_RST_n	(i_RST_n		),
-// 	.i_CLK_A	(i_CLK_3M579	),
-// 	.i_DATA_A	(SOUND_ALL_y	),
-// 	.i_CLK_B	(clk_17M9		),
-// 	.o_DATA_B	(SOUND_DAC_z	)
-// );
-
-// MMP_dac u_Dac (
-// 	.i_RST_n	(i_RST_n		),
-// 	.i_CLK		(clk_17M9		),
-// 	.i_SCC		(SOUND_SCC_y	),
-// 	.i_PSG		(SOUND_PSG_y	),
-// 	.i_OPLL		(SOUND_OPLL_y	),
-// 	.i_ALL		(SOUND_DAC_z	),
-// 	.o_DAC_WS	(o_DAC_WS		),
-// 	.o_DAC_CLK	(o_DAC_CLK		),
-// 	.o_DAC1_L_R	(o_DAC1_L_R		),
-// 	.o_DAC2_L_R	(o_DAC2_L_R		)
-// );
-
 MMP_dac u_Dac (
 	.i_RST_n	(i_RST_n		),
-	.i_CLK		(i_CLK_3M072_DQCE),
-	.i_SCC		(SOUND_SCC_y	),
-	.i_PSG		(SOUND_PSG_y	),
-	.i_OPLL		(SOUND_OPLL_y	),
-	.i_ALL		(SOUND_SPDIF_z	),
+	.i_CLK		(i_CLK_3M579	),
+	.i_SCC		(16'sd0			),
+	.i_PSG		(16'sd0			),
+	.i_OPLL		(16'sd0			),
+	.i_ALL		(SOUND_ALL_y	),
 	.o_DAC_WS	(o_DAC_WS		),
 	.o_DAC_CLK	(o_DAC_CLK		),
 	.o_DAC1_L_R	(o_DAC1_L_R		),
@@ -165,18 +115,18 @@ Gowin_DQCE u_Gowin_DQCE(
 
 wire signed [15:0]	SOUND_SPDIF_z;
 MMP_cdc_F2L u_SpdifCdc (
-	.i_RST_n	(i_RST_n		),
-	.i_CLK_A	(i_CLK_3M579	),
-	.i_DATA_A	(SOUND_ALL_y	),
+	.i_RST_n	(i_RST_n			),
+	.i_CLK_A	(i_CLK_3M579		),
+	.i_DATA_A	(SOUND_ALL_y		),
 	.i_CLK_B	(i_CLK_3M072_DQCE	),
-	.o_DATA_B	(SOUND_SPDIF_z	)
+	.o_DATA_B	(SOUND_SPDIF_z		)
 );
 
 MMP_spdif u_spdif (
-	.i_RST_n		(i_RST_n		),
+	.i_RST_n		(i_RST_n			),
 	.i_CLK_SPDIF	(i_CLK_3M072_DQCE	),
-	.i_SOUND		(SOUND_SPDIF_z	),
-	.o_SPDIF		(o_SPDIF		)
+	.i_SOUND		(SOUND_SPDIF_z		),
+	.o_SPDIF		(o_SPDIF			)
 );
 
 
@@ -381,7 +331,6 @@ typedef enum logic [5:0]
 } membus_sts_t;
 membus_sts_t	membus_sts;
 
-
 always @(posedge clk_71M7) begin
 	if (!i_RST_n) begin
 		spirx_sxv_data <= 64'h0;
@@ -506,6 +455,8 @@ always @(posedge clk_71M7) begin
 					membus_sts <= MEMBUS_FINISH;
 				end
 			end
+
+
 			// -----------------------
 			MEMBUS_HARZ_GETSTS: begin
 				if( spirx_bitcnt[2:0] == 3'b0 ) begin
@@ -667,11 +618,6 @@ always @(posedge clk_71M7) begin
 			// -------------------------------
 			default: begin
 				// do nothing
-				// if( spirx_buff_ena[0] == `HIGH ) begin
-				// spirx_bitcnt <= 7'd0;
-				// spirx_rsv_data <= 64'h0;
-				// membus_sts <= MEMBUS_IDLE;
-				// end
 			end
 		endcase
 	end

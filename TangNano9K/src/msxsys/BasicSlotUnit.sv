@@ -22,8 +22,7 @@ module BasicSlotUnit
 
 );
 
-assign bus_Slot.busy = mem_busy|io_busy;
-wire mem_busy = busy_s3_p0|busy_s3_p1|busy_s3_p2|busy_s3_p3|busy_s1_p1|busy_s1_p2;
+assign bus_Slot.busy = busy_s3_p0|busy_s3_p1|busy_s3_p2|busy_s3_p3|busy_s1_p1|busy_s1_p2|io_busy;
 assign bus_Sound.WTS = 11'sd0;
 
 // ==========================================================================
@@ -186,6 +185,41 @@ always_ff@(posedge clk_255K69 ) begin
 	end
 end
 
+
+// ==========================================================================
+// VSYNC Interrupt 
+// {clear interrupt signal (I/O 0x07)}
+// ==========================================================================
+wire io_vsync_inter = ((bus_Slot.a[7:0]==8'h07)&&bus_Slot.iorq);
+
+reg enable_vsync;
+reg [15:0] clkcnt_vsync;
+always_ff@(posedge bus_Slot.clock ) begin
+ 	if( !i_RST_n ) begin
+		clkcnt_vsync <= 16'd0;
+		bus_Slot.int_n <= `HIGH;
+		enable_vsync <= `LOW;			// 起動直後は割り込みを発生させない
+	end
+	else begin
+		if( !enable_vsync ) begin
+			if( io_vsync_inter ) enable_vsync <= `HIGH;
+		end
+		else begin
+			if( clkcnt_vsync == 16'd59680 ) begin
+				// 3,579,545 ÷ 59.94 ≒ 59,680 クロック
+				clkcnt_vsync <= 16'd0;
+				bus_Slot.int_n <= `LOW;
+			end
+			else begin
+				clkcnt_vsync = clkcnt_vsync + 16'd1;
+				if( !bus_Slot.int_n && io_vsync_inter ) begin
+					bus_Slot.int_n <= `HIGH;
+				end
+			end
+		end
+	end
+end
+
 // ==========================================================================
 // PSG(ym2149_audio)
 // ==========================================================================
@@ -199,8 +233,8 @@ reg [7:0] ff_psg_data_tmp;
 
 always_ff@(posedge i_CLK ) begin
  	if( !i_RST_n ) begin
-		ff_BC_PSG <= 1'b0;
-		ff_BDIR_PSG <= 1'b0;
+		ff_BC_PSG <= `LOW;
+		ff_BDIR_PSG <= `LOW;
 		ff_psg_data <= 8'b0;
 		bus_PSG_CS_sft <= 2'b0;
 		ff_BDIR_PSG_cnt <= 6'd0;
@@ -215,7 +249,7 @@ always_ff@(posedge i_CLK ) begin
 			ff_BDIR_PSG <= `HIGH;
 			ff_psg_data <= ff_psg_data_tmp;
 		end
-		else begin
+		else if( ff_BDIR_PSG ) begin 
 			ff_BDIR_PSG_cnt <= ff_BDIR_PSG_cnt + 6'd1;
 			if( ff_BDIR_PSG_cnt == 6'd38 ) begin
 				ff_BC_PSG <= `LOW;
@@ -236,14 +270,15 @@ ym2149_audio u_Ym2149Audio (
 	.data_r_o		(),						//  out    std_logic_vector(7 downto 0) -- registered output data
 	.ch_a_o			(),						//  out    unsigned(11 downto 0)
 	.ch_b_o			(),						//  out    unsigned(11 downto 0)
-
 	.ch_c_o			(),						//  out    unsigned(11 downto 0)
-	.mix_audio_o	(),						//  out    unsigned(13 downto 0)
+	.mix_audio_o	(psg_mix_audio_o	),	//  out    unsigned(13 downto 0)
 	.pcm14s_o		(psg_pcm14s			)	//  out    unsigned(13 downto 0)
 );
 
 wire [13:0] psg_pcm14s;
-assign bus_Sound.PSG = $signed(psg_pcm14s);
+wire [13:0] psg_mix_audio_o;
+assign bus_Sound.PSG = $signed({{2{psg_pcm14s[13]}}, psg_pcm14s});
+//assign bus_Sound.PSG = {2'b00, psg_mix_audio_o};
 
 // PSG I/O アクセス時に CPUクロックで1サイクルのWAIT期間を追加する回路
 reg [6:0] psg_forbusy_cnt;
@@ -288,6 +323,7 @@ reg		signed [4:0]	opll_rovol;
 wire w_OPLL_CS = (bus_Slot.iorq&&bus_Slot.wr&&((bus_Slot.a[7:0]==8'h7C)||(bus_Slot.a[7:0]==8'h7D)));
 wire w_opll_A0 = bus_Slot.a[0];	// 0=adress, 1=data
 reg ff_opll_A0;
+reg [7:0] ff_opll_data_pre;
 reg [7:0] ff_opll_data;
 reg [5:0] ff_OPLL_CS_cnt;
 reg ff_OPLL_CS;
@@ -306,9 +342,10 @@ always_ff@(posedge i_CLK ) begin
 	end
 	else begin
 		w_OPLL_CS_sft <= {w_OPLL_CS_sft[0], w_OPLL_CS};
+		ff_opll_data_pre <= bus_Slot.write_d;
 		if( w_OPLL_CS_sft == 2'b01 ) begin
 			ff_opll_A0 <= w_opll_A0;
-			ff_opll_data <= bus_Slot.write_d;
+			ff_opll_data <= ff_opll_data_pre;
 			ff_OPLL_WR_cnt <= 6'd0;
 			ff_OPLL_WR <= `HIGH;
 			ff_OPLL_CS_cnt <= 6'd0;
@@ -366,9 +403,9 @@ always_ff @(posedge i_CLK) begin
 		opll_STRB_sft <= 2'b0;
 	end
 	else begin
-		opll_STRB_sft <= {opll_STRB_sft[0], opll_STRB};
+		// opll_STRB_sft <= {opll_STRB_sft[0], opll_STRB};
 		// if( opll_STRB_sft == 2'b01 )
-		// 	bus_Sound.OPLL <= opll_OUT;
+		//  	bus_Sound.OPLL <= opll_OUT;
 	end
 end
 
@@ -485,6 +522,8 @@ wire		w_IKASCC_DB_OE;
 assign bus_Slot.read_d	= (ff_IKASCC_CS&&w_IKASCC_DB_OE) ? w_IKASCC_RD_DATA: 8'bz;
 
 
+
+
 // ==========================================================================
 // 基本スロットのページ選択
 // ==========================================================================
@@ -525,6 +564,7 @@ wire sel_s3_p0 = (bus_Slot.merq && RegBaseSlot[0] == 2'd3 && pgNo == 2'd0 );
 wire sel_s3_p1 = (bus_Slot.merq && RegBaseSlot[1] == 2'd3 && pgNo == 2'd1 );
 wire sel_s3_p2 = (bus_Slot.merq && RegBaseSlot[2] == 2'd3 && pgNo == 2'd2 );
 wire sel_s3_p3 = (bus_Slot.merq && RegBaseSlot[3] == 2'd3 && pgNo == 2'd3 );
+//
 wire sel_s1_p1 = (bus_Slot.merq && RegBaseSlot[1] == 2'd1 && pgNo == 2'd1 );	// FM-BIOS
 wire sel_s1_p2 = (bus_Slot.merq && RegBaseSlot[2] == 2'd1 && pgNo == 2'd2 );	// IKASCC
 //

@@ -18,12 +18,14 @@ module Ram16kUnit #(
 	pamux_if.client			bus_Pamux
 );
 
-typedef enum logic [2:0]
+typedef enum logic [3:0]
 {
 	STATE_IDLE,
 	STATE_WAIT_FOR_WR,
+	STATE_WAIT_FOR_WR1,
 	STATE_WAIT_FOR_WR_DONE,
 	STATE_WAIT_FOR_RD,
+	STATE_WAIT_FOR_RD1,
 	STATE_WAIT_FOR_RD_DONE,
 	STATE_NEXT_STANDBY
 } state_t;
@@ -32,7 +34,7 @@ state_t state;
 //
 logic [7:0]	resData8;
 reg resBusy;
-assign o_MEM_DATA8	= (i_EN&&i_MEM_RD8) ? resData8: 8'bz;
+assign o_MEM_DATA8	= (i_EN&i_MEM_RD8) ? resData8: 8'bz;
 assign o_MEM_BUSY	= resBusy;
 //
 //
@@ -41,10 +43,12 @@ logic [7:0]	memCtrlWrData8;
 logic		memCtrlWR8;
 logic		memCtrlRD8;
 logic 		gateMemCtrl;
-assign bus_Pamux.address	= (gateMemCtrl) ? memCtrlAddr22 	: 22'bz;
-assign bus_Pamux.write 		= (gateMemCtrl) ? memCtrlWR8 		: 1'bz;
-assign bus_Pamux.read		= (gateMemCtrl) ? memCtrlRD8		: 1'bz;
-assign bus_Pamux.write_data	= (gateMemCtrl) ? memCtrlWrData8	: 8'bz;
+always @(posedge i_CLK) begin
+	bus_Pamux.address		<= (gateMemCtrl) ? memCtrlAddr22 	: 22'bz;
+	bus_Pamux.write 		<= (gateMemCtrl) ? memCtrlWR8 		: 1'bz;
+	bus_Pamux.read			<= (gateMemCtrl) ? memCtrlRD8		: 1'bz;
+	bus_Pamux.write_data	<= (gateMemCtrl) ? memCtrlWrData8	: 8'bz;
+end
 
 always @(posedge i_CLK) begin
 	if(!i_RST_n) begin
@@ -80,8 +84,11 @@ always @(posedge i_CLK) begin
 						state <= STATE_WAIT_FOR_RD;
 					end
 				end
-				STATE_WAIT_FOR_WR: begin
+				STATE_WAIT_FOR_WR: begin			// gateMemCtrlの分
 					memCtrlWR8 <= `LOW;
+					state <= STATE_WAIT_FOR_WR1;
+				end
+				STATE_WAIT_FOR_WR1: begin			// PsramControllerのレイテンシの分
 					state <= STATE_WAIT_FOR_WR_DONE;
 				end
 				STATE_WAIT_FOR_WR_DONE: begin
@@ -91,8 +98,11 @@ always @(posedge i_CLK) begin
 						state <= STATE_NEXT_STANDBY;
 					end
 				end
-				STATE_WAIT_FOR_RD: begin
+				STATE_WAIT_FOR_RD: begin			// gateMemCtrlの分
 					memCtrlRD8 <= `LOW;
+					state <= STATE_WAIT_FOR_RD1;
+				end
+				STATE_WAIT_FOR_RD1: begin			// PsramControllerのレイテンシの分
 					state <= STATE_WAIT_FOR_RD_DONE;
 				end
 				STATE_WAIT_FOR_RD_DONE: begin

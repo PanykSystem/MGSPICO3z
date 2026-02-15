@@ -1,6 +1,6 @@
 # MUDRV\.COMを使用した曲データの再生
 
-2025/12/20 harumakkin
+2026/02/15 harumakkin
 
 ##### MUDRV\.COMとは
 体験版「プリンセスメーカー」で使用されている音源ドライバです。このMUDRV\.COMを使用することで、(株)マイクロキャビンが過去発売したMSX向けゲームソフト内のBGMデータを再生して鑑賞することができます。
@@ -15,16 +15,17 @@ MGSPICO3zによる再生では、ゲームソフトから事前にBGMデータ�
 Table.1 MGSPICO3z対応タイトル
 |タイトル|対応機種|FD枚数|ディスク名|イメージファイル名|
 |:--|:--|:-:|:--|:--|
-|Xak|MSX2|3|ディスクNo.1<br>ディスクNo.2<br>ディスクNo.3|XAK_D1.dsk<br>XAK_D2.dsk<br>XAK_D3.dsk|
-|XakⅡ|MSX2|5|ディスクNo.1<br>ディスクNo.2<br>ディスクNo.3<br>ディスクNo.4<br>ディスクNo.5|Xak2_D1.dsk<br>Xak2_D2.dsk<br>Xak2_D3.dsk<br>Xak2_D4.dsk<br>Xak2_D5.dsk|
-|FRAY|MSX2|4|ゲーム・ディスク0<br>ゲーム・ディスク1<br>デモ・ディスク0<br>デモ・ディスク1|FRAY_G0.dsk<br>FRAY_G1.dsk<br>FRAY_D0.dsk<br>FRAY_D1.dsk|
-|FRAY|turboR|5|ゲーム・ディスク0<br>ゲーム・ディスク1<br>デモ・ディスク0<br>デモ・ディスク1<br>デモ・ディスク2|FRAY_G0.dsk<br>FRAY_G1.dsk<br>FRAY_D0.dsk<br>FRAY_D1.dsk<br>FRAY_D2.dsk|
-|幻影都市|turboR|8|ディスクNo.1<br>ディスクNo.2<br>ディスクNo.3<br>ディスクNo.4<br>ディスクNo.5<br>ディスクNo.6<br>ディスクNo.7<br>ディスクNo.8<br>|ILLCity_No1.dsk<br>ILLCity_No2.dsk<br>ILLCity_No3.dsk<br>ILLCity_No4.dsk<br>ILLCity_No5.dsk<br>ILLCity_No6.dsk<br>ILLCity_No7.dsk<br>ILLCity_No8.dsk|
-|キャビンパニック|MSX2|3|ディスクNo.1<br>ディスクNo.2<br>ディスクNo.3|THE_TOWER_OF_CABIN_1.dsk<br>THE_TOWER_OF_CABIN_2.dsk<br>THE_TOWER_OF_CABIN_3.dsk|
-|キャンペーン版大戦略II|MSX2|2|システムディスク<br>データディスク|CAMP_DAISENRYAKU2_MSX2.dsk<br>|
-|プリンセスメーカー(パッケージ版)|MSX2|7|ディスクNo.1<br>ディスクNo.2<br>ディスクNo.3<br>ディスクNo.4<br>ディスクNo.5<br>ディスクNo.6<br>ディスクNo.7<br>|PM_No1.dsk<br>PM_No2.dsk<br>PM_No3.dsk<br>PM_No4.dsk<br>PM_No5.dsk<br>PM_No6.dsk<br>PM_No7.dsk<br>|
-|プリンセスメーカー(体験版)|MSX2|-|-|-|
-|倉庫番パーフェクト|MSX2|1|-|－|
+|Xak<br>(パッケージ版)|MSX2|3|ディスクNo.1<br>ディスクNo.2<br>ディスクNo.3|XAK_D1.dsk<br>XAK_D2.dsk<br>XAK_D3.dsk|
+|XakⅡ<br>(パッケージ版)|MSX2|5|ディスクNo.1<br>ディスクNo.2<br>ディスクNo.3<br>ディスクNo.4<br>ディスクNo.5|Xak2_D1.dsk<br>Xak2_D2.dsk<br>Xak2_D3.dsk<br>Xak2_D4.dsk<br>Xak2_D5.dsk|
+|Xak ガゼルの塔<br>The Tower of Gazzel<br>(TAKERU版)|MSX2|4|ディスクNo.1<br>ディスクNo.2<br>ディスクNo.3<br>ディスクNo.4|TheTowerOfGazzel_disk1.dsk<br>TheTowerOfGazzel_disk2.dsk<br>TheTowerOfGazzel_disk3.dsk<br>TheTowerOfGazzel_disk4.dsk<br>|
+|FRAY<br>(パッケージ版)|MSX2|4|ゲーム・ディスク0<br>ゲーム・ディスク1<br>デモ・ディスク0<br>デモ・ディスク1|FRAY_G0.dsk<br>FRAY_G1.dsk<br>FRAY_D0.dsk<br>FRAY_D1.dsk|
+|FRAY<br>(パッケージ版)|turboR|5|ゲーム・ディスク0<br>ゲーム・ディスク1<br>デモ・ディスク0<br>デモ・ディスク1<br>デモ・ディスク2|FRAY_G0.dsk<br>FRAY_G1.dsk<br>FRAY_D0.dsk<br>FRAY_D1.dsk<br>FRAY_D2.dsk|
+|幻影都市<br>(パッケージ版)|turboR|8|ディスクNo.1<br>ディスクNo.2<br>ディスクNo.3<br>ディスクNo.4<br>ディスクNo.5<br>ディスクNo.6<br>ディスクNo.7<br>ディスクNo.8<br>|ILLCity_No1.dsk<br>ILLCity_No2.dsk<br>ILLCity_No3.dsk<br>ILLCity_No4.dsk<br>ILLCity_No5.dsk<br>ILLCity_No6.dsk<br>ILLCity_No7.dsk<br>ILLCity_No8.dsk|
+|キャビンパニック<br>(パッケージ版)<br>(TAKERU版)|MSX2|3|ディスクNo.1<br>ディスクNo.2<br>ディスクNo.3|THE_TOWER_OF_CABIN_1.dsk<br>THE_TOWER_OF_CABIN_2.dsk<br>THE_TOWER_OF_CABIN_3.dsk|
+|キャンペーン版大戦略II<br>(パッケージ版)|MSX2|2|システムディスク<br>データディスク|CAMP_DAISENRYAKU2_MSX2.dsk<br>|
+|プリンセスメーカー<br>(パッケージ版)|MSX2|7|ディスクNo.1<br>ディスクNo.2<br>ディスクNo.3<br>ディスクNo.4<br>ディスクNo.5<br>ディスクNo.6<br>ディスクNo.7<br>|PM_No1.dsk<br>PM_No2.dsk<br>PM_No3.dsk<br>PM_No4.dsk<br>PM_No5.dsk<br>PM_No6.dsk<br>PM_No7.dsk<br>|
+|プリンセスメーカー<br>(体験版)|MSX2|-|※後述|※後述|
+|倉庫番パーフェクト<br>(パッケージ版)|MSX2|1|※後述|※後述|
 
 ##### BGMデータ抽出の前準備
 1. とにもかくにも、「スーパー付録ディスク#9」及び、各種ゲームソフトを準備します
@@ -40,7 +41,7 @@ Table.1 MGSPICO3z対応タイトル
 6. 「スーパー付録ディスク#9」内のMUDRV\.COMをSDカードのルートにコピーします
 7. MGSPICO3zの設定画面のmusicでMUDRVを選択します
 
-###### プリンセスメーカー(体験版)の場合
+###### ●プリンセスメーカー(体験版)の場合
 1. 「MUDRV」フォルダ内に、「PRIMADEM」フォルダを作成します
 2. 「スーパー付録ディスク#9」の下記ファイルを「PRIMADEM」にコピーします
 3. コピーしたら、"コピー先でのファイル名称"の通りにファイル名称を変更してください
@@ -53,7 +54,7 @@ Table.1 MGSPICO3z対応タイトル
 |PM08_F.BGM|PM08_F.MUD|
 |PM08_P.BGM|PM08_P.MUD|
 
-###### 倉庫番パーフェクトの場合
+###### ●倉庫番パーフェクトの場合
 1. 「MUDRV」フォルダ内に、「SBP」フォルダを作成します
 2. 「倉庫番パーフェクト」ディスク内の下記ファイルを「SBP」にコピーします
 3. コピーしたら、"コピー先でのファイル名称"の通りにファイル名称を変更してください

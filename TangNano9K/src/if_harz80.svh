@@ -77,7 +77,8 @@ interface msxslotbus_if;
 	logic [7:0]		write_d;
 	logic [7:0]		read_d;
 	logic			busy;
-	modport client(
+	logic			int_n;
+	modport client(				// CPU側
 		output	clock,
 		output	reset_n,
 //		output	sltsl,
@@ -87,10 +88,11 @@ interface msxslotbus_if;
 		output	rd,
 		output	a,
 		output	write_d,
+		input	int_n,
 		input	read_d,
 		input	busy
 	);
-	modport host(
+	modport host(				// slotに接続する機器側
 		input	clock,
 		input	reset_n,
 //		input	sltsl,
@@ -100,6 +102,7 @@ interface msxslotbus_if;
 		input	rd,
 		input	a,
 		input	write_d,
+		output	int_n,
 		output	read_d,
 		output	busy
 	);

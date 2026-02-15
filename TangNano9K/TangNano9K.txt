@@ -1,0 +1,7 @@
+﻿GOWIN FPGA Designer Version v1.9.9.03(64-bit) build(73547)
+
+Series: GW1NR
+Device: GW1NR-9C
+QN88PC6／I5(C、LV)
+
+

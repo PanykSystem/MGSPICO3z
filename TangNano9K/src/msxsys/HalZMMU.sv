@@ -26,6 +26,7 @@ module HarzMMU
 
 reg [15:0]	harz_address;
 reg [7:0]	harz_write_data;
+reg [7:0]	harz_read_data;
 reg 		harz_rd;
 reg 		harz_wr;
 reg 		harz_merq;
@@ -36,7 +37,6 @@ reg 		harz_busy;
 msxslotbus_if	bus_Slot();
 assign bus_Slot.clock		= bus_Z80.bus_clk;
 assign bus_Slot.reset_n		= i_RST_n;
-
 always_ff @(posedge i_CLK) begin
 	bus_Slot.iorq		<= (ff_Harz) ? harz_iorq		: ~bus_Z80.iorq_n;
 	bus_Slot.merq		<= (ff_Harz) ? harz_merq		: ~bus_Z80.mreq_n;
@@ -46,31 +46,18 @@ always_ff @(posedge i_CLK) begin
 	bus_Slot.write_d	<= (ff_Harz) ? harz_write_data	: bus_Z80.dout;
 end
 
+// harzへ
+assign bus_Harz.read_data	= harz_read_data;
+assign bus_Harz.busy		= harz_busy;
 
-// CPUへ
-assign bus_Z80.int_n		= `HIGH;
-assign bus_Z80.nmi_n		= `HIGH;
-//assign bus_Z80.wait_n		= ~(bus_Slot.busy|m1_busy);
-assign bus_Z80.wait_n		= ~(bus_Slot.busy);
-assign bus_Z80.di			= bus_Slot.read_d;
-assign bus_Z80.busrq_n		= 1'bz;
-
-//
-//assign bus_Harz.read_data	= bus_Slot.read_d;
-//assign bus_Harz.busy		= harz_busy;
-
-// reg	[1:0]	z80_clk_sft;
-// always_ff @(posedge i_CLK) begin
-// 	if (!i_RST_n) begin
-// 		z80_clk_sft <= 5'b0;
-// 	end
-// 	else begin
-// 		z80_clk_sft <= {z80_clk_sft[0], bus_Z80.clk};
-// 		if( z80_clk_sft == 2'b01 ) begin
-// 			bus_Harz.read_data <= bus_Slot.read_d;
-// 		end
-// 	end
-// end
+// Z80 CPUへ
+always_ff @(posedge i_CLK) begin
+	bus_Z80.nmi_n		<= `HIGH;
+	bus_Z80.int_n		<= bus_Slot.int_n;
+	bus_Z80.di			<= bus_Slot.read_d;
+	bus_Z80.wait_n		<= ~(bus_Slot.busy|m1_busy);
+	bus_Z80.busrq_n		<= 1'bz;
+end
 
 //-----------------------------------------------------------------------
 // @brief M1サイクル用WAIT信号の生成回路
@@ -143,6 +130,7 @@ typedef enum logic [2:0]
 {
 	ST_IDLE,
 	ST_WAIT,
+	ST_WAIT1,
 	ST_DELAY,
 	ST_FINISH
 } state_t;
@@ -158,37 +146,43 @@ always_ff @(posedge i_CLK) begin
 		harz_merq	<= `LOW;
 		harz_iorq	<= `LOW;
 		ff_Harz 	<= `LOW;
+		harz_read_data <= 8'h33;
 		state <= ST_IDLE;
 	end
 	else begin
-		if( state == ST_IDLE ) begin 
-			if (bus_Harz.request != HARZ80_NONE) begin
-				ff_Harz <= `HIGH;
-				harz_write_data <= bus_Harz.write_data;
-				harz_address <= bus_Harz.address;
-				conv(bus_Harz.request, harz_iorq, harz_merq, harz_wr, harz_rd);
-				bus_Harz.busy <= `HIGH;
-				state <= ST_WAIT;
+		case (state) 
+			ST_IDLE: begin
+				if (bus_Harz.request != HARZ80_NONE) begin
+					ff_Harz <= `HIGH;
+					harz_write_data <= bus_Harz.write_data;
+					harz_address <= bus_Harz.address;
+					conv(bus_Harz.request, harz_iorq, harz_merq, harz_wr, harz_rd);
+					harz_busy <= `HIGH;
+					state <= ST_WAIT;
+				end
 			end
-		end
-		else if( state==ST_WAIT ) begin
-			state <= ST_DELAY;
-		end
-		else if( state==ST_DELAY ) begin	
-			if( !bus_Slot.busy ) begin
-				harz_wr <= `LOW;
-				harz_rd <= `LOW;
-				bus_Harz.read_data <= bus_Slot.read_d;
-				bus_Harz.busy <= `LOW;
-				state <= ST_FINISH;
+			ST_WAIT: begin				// ff_HarzによるZ80とのバス調停の分
+				state <= ST_WAIT1;	
 			end
-		end
-		else if( state==ST_FINISH ) begin
-			ff_Harz <= `LOW;
-			harz_iorq <= `LOW;
-			harz_merq <= `LOW;
-			state <= ST_IDLE;
-		end
+			ST_WAIT1: begin				// Ram16kUnitのレイテンシ1の分
+				state <= ST_DELAY;
+			end
+			ST_DELAY: begin	
+				if( !bus_Slot.busy ) begin
+					harz_wr <= `LOW;
+					harz_rd <= `LOW;
+					harz_read_data <= bus_Slot.read_d;
+					harz_busy <= `LOW;
+					state <= ST_FINISH;
+				end
+			end
+			ST_FINISH: begin
+				ff_Harz <= `LOW;
+				harz_iorq <= `LOW;
+				harz_merq <= `LOW;
+				state <= ST_IDLE;
+			end
+		endcase
 	end
 end
 

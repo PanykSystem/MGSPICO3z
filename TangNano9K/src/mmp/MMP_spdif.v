@@ -6,7 +6,7 @@ module MMP_spdif (
 	output	wire				o_SPDIF
 );
 
-reg[15:0]	ff_ALL_OUTPUT_SPDIF_16bit;
+reg signed [15:0]	ff_ALL_OUTPUT_SPDIF_16bit;
 wire		SPDIF_chan_status_bit_req;
 wire		SPDIF_block_start_flag;
 wire		SPDIF_O_sub_frame1_flag;

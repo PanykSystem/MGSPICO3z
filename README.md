@@ -1,5 +1,5 @@
 # MGSPICO3z 
-2025/11/30 harumakkin
+2026/02/15 harumakkin
 
 ![mgspico3-01](docs/pics/mgspico3.png)</br>**fig.1 MGSPICO3z**
 
